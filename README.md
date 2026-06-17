@@ -109,6 +109,18 @@ DOCKER_BUILDKIT=1 docker build -t anima-vllm:thor-latest -f Dockerfile .
 ```
 Verify `sm_110` first (~2 min): run `scripts/verify_sm110.py` inside the image (or any torch-2.11 venv).
 
+## 🎛 Control plane — [`ui/`](./ui) (ANIMA Thor UI)
+vLLM has no web UI, so we built one — in the same skin as this repo's hero. It manages **this** engine:
+pick a model + vLLM config and launch it, manage the HF model cache (download / delete), and **discover
+NVFP4 models ranked for Thor** (fits-in-128 GB + estimated tok/s). Exposes OpenAI `/v1` (also Factory-Droid
+compatible) and Anthropic `/v1/messages`, with Swagger at `/docs`. No local chat, no passwords.
+
+```bash
+cd ui && cp .env.example .env   # set HF_TOKEN + HF_HOME
+./run.sh                        # http://<thor>:7000
+```
+Details in [`ui/README.md`](./ui/README.md).
+
 ## 🖥 Target hardware / software
 Jetson AGX Thor · Blackwell `sm_110a` · 128 GB unified LPDDR5X (~273 GB/s) · JetPack 7 / L4T r38.4 ·
 CUDA 13.0.88 · Ubuntu 24.04 · arm64 (SBSA). Built `FROM ghcr.io/nvidia-ai-iot/vllm:latest-jetson-thor`.

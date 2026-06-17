@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ANIMA THOR // CONTROL</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="glow-line"></div>
+  <div class="bar">
+    <div class="brand">ANIMA <span>THOR</span><small>VLLM CONTROL · sm_110a</small></div>
+    <div class="engine-state">
+      <span id="engine-model">—</span>
+      <span class="dot off" id="engine-dot"></span>
+      <span id="engine-label">OFFLINE</span>
+    </div>
+  </div>
+</header>
+
+<div class="rail">
+  <div class="tile"><div class="v" id="t-tps">—</div><div class="l">tok/s · single</div></div>
+  <div class="tile"><div class="v dim" id="t-model">no engine</div><div class="l">active model</div></div>
+  <div class="tile"><div class="v dim" id="t-ctx">—</div><div class="l">max context</div></div>
+  <div class="tile"><div class="v green" id="t-uptime">0s</div><div class="l">uptime</div></div>
+</div>
+
+<main>
+  <div class="tabs">
+    <div class="tab active" data-tab="engine">Engine</div>
+    <div class="tab" data-tab="local">Local Models</div>
+    <div class="tab" data-tab="discover">Discover (HF)</div>
+    <div class="tab" data-tab="api">API</div>
+  </div>
+
+  <!-- ENGINE -->
+  <section class="panel active" id="panel-engine">
+    <div class="card">
+      <h2>Engine Configuration <span class="badge">anima-vllm:thor-latest</span></h2>
+      <div class="grid2">
+        <div><label>Model (local)</label><select id="cfg-model"></select></div>
+        <div><label>Served name (OpenAI id)</label><input id="cfg-name" placeholder="auto from model"></div>
+        <div><label>Max context length</label><input id="cfg-ctx" type="number" value="32768"></div>
+        <div><label>GPU memory utilization</label><input id="cfg-util" type="number" step="0.01" min="0.3" max="0.95" value="0.70"></div>
+        <div><label>KV cache dtype</label><select id="cfg-kv"><option>fp8</option><option>auto</option></select></div>
+        <div><label>Attention backend</label><select id="cfg-attn"><option>TRITON_ATTN</option><option>FLASHINFER</option><option>FLASH_ATTN</option></select></div>
+        <div><label>Speculative decode</label><select id="cfg-spec"><option value="off">off (best general — recommended)</option><option value="ngram">ngram</option><option value="mtp">mtp</option></select></div>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button class="btn" id="btn-serve">▶ Serve Engine</button>
+        <button class="btn ghost" id="btn-stop">■ Stop</button>
+        <button class="btn ghost" id="btn-logs">⌕ Logs</button>
+      </div>
+      <pre id="logs-out" style="display:none;margin-top:14px;background:var(--rf-bg);border:1px solid var(--rf-border);padding:12px;font-size:11px;max-height:320px;overflow:auto;color:var(--rf-dim)"></pre>
+    </div>
+  </section>
+
+  <!-- LOCAL -->
+  <section class="panel" id="panel-local">
+    <div class="card">
+      <h2>Downloaded Models</h2>
+      <div class="list" id="local-list"></div>
+    </div>
+  </section>
+
+  <!-- DISCOVER -->
+  <section class="panel" id="panel-discover">
+    <div class="card">
+      <h2>Discover Thor-Ready Models <span class="badge" id="disc-budget">≤95GB · 273GB/s</span></h2>
+      <div class="row" style="margin-bottom:16px">
+        <div style="flex:1"><label>Search HuggingFace (NVFP4, ranked for Thor)</label><input id="disc-q" value="NVFP4" placeholder="NVFP4"></div>
+        <button class="btn" id="btn-discover">⟳ Scan</button>
+      </div>
+      <div class="list" id="disc-list"></div>
+    </div>
+  </section>
+
+  <!-- API -->
+  <section class="panel" id="panel-api">
+    <div class="card">
+      <h2>API Endpoints <span class="badge">no auth · single-user edge</span></h2>
+      <div class="endpoint"><div class="t">Swagger / OpenAPI</div><a href="/docs" target="_blank"><code>/docs</code></a> — interactive docs for every endpoint below.</div>
+      <div class="endpoint"><div class="t">OpenAI · also Factory Droid</div><code id="ep-openai"></code><div class="note">Set this as the OpenAI base URL (or Factory Droid custom-model endpoint). Any API key accepted.</div></div>
+      <div class="endpoint"><div class="t">Anthropic Messages</div><code id="ep-anthropic"></code><div class="note">Point the Anthropic SDK <code>base_url</code> here. Translated to the engine automatically.</div></div>
+      <div class="endpoint"><div class="t">Model id (served name)</div><code id="ep-modelid">—</code><div class="note">Use this as the <code>model</code> field in requests.</div></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<footer>ANIMA THOR UI · ROBOTFLOW LABS · vLLM 0.23 · CUDA 13 · arm64</footer>
+<script src="/app.js"></script>
+</body>
+</html>

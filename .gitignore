@@ -1,0 +1,9 @@
+# python / ui
+ui/.venv/
+**/__pycache__/
+*.pyc
+*.egg-info/
+.env
+.DS_Store
+# never commit prebuilt images / weights
+*.whl
