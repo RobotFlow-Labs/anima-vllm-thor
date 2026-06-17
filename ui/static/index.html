@@ -31,6 +31,7 @@
     <div class="tab active" data-tab="engine">Engine</div>
     <div class="tab" data-tab="local">Local Models</div>
     <div class="tab" data-tab="discover">Discover (HF)</div>
+    <div class="tab" data-tab="quantize">Quantize → NVFP4</div>
     <div class="tab" data-tab="api">API</div>
   </div>
 
@@ -73,6 +74,44 @@
         <button class="btn" id="btn-discover">⟳ Scan</button>
       </div>
       <div class="list" id="disc-list"></div>
+    </div>
+  </section>
+
+  <!-- QUANTIZE -->
+  <section class="panel" id="panel-quantize">
+    <div class="card">
+      <h2>Quantize a model → NVFP4 <span class="badge">powered by NVIDIA ModelOpt</span></h2>
+      <p class="note" style="margin:0 0 16px">Turn any standard bf16 HuggingFace model into a fast, Thor-ready
+        NVFP4 build — right here. Paste a repo, we check it fits, then download &amp; quantize. Great for
+        uncensored / China / niche models that don't ship an NVFP4 version.</p>
+
+      <div class="row">
+        <div style="flex:1">
+          <label>① HuggingFace model repo</label>
+          <input id="q-repo" placeholder="e.g. mistralai/Mistral-7B-Instruct-v0.3">
+        </div>
+        <button class="btn" id="q-check">② Check model</button>
+      </div>
+
+      <!-- verdict -->
+      <div id="q-verdict" class="endpoint" style="display:none;margin-top:16px"></div>
+
+      <!-- run -->
+      <div id="q-run" style="display:none;margin-top:14px">
+        <div class="endpoint" style="border-color:var(--rf-warning)">
+          <div class="t" style="color:var(--rf-warning)">⚠ heads up</div>
+          Quantizing needs all the memory, so this will <b>stop the running engine</b> first. It comes back when you serve again.
+        </div>
+        <button class="btn" id="q-start" style="margin-top:6px">③ Download &amp; Quantize to NVFP4</button>
+      </div>
+
+      <!-- progress -->
+      <div id="q-progress" style="display:none;margin-top:20px">
+        <div class="stepper" id="q-stepper"></div>
+        <div class="qbar"><div class="qbar-fill" id="q-fill"></div></div>
+        <div class="note" id="q-msg" style="margin-top:8px;color:var(--rf-text)"></div>
+        <pre id="q-log" style="margin-top:12px;background:var(--rf-bg);border:1px solid var(--rf-border);padding:12px;font-size:11px;max-height:260px;overflow:auto;color:var(--rf-dim)"></pre>
+      </div>
     </div>
   </section>
 

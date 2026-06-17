@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import hf_models, vllm_manager
+from . import hf_models, quantize, vllm_manager
 from .anthropic_api import router as anthropic_router
 from .config import settings
 
@@ -93,6 +93,11 @@ def api_models_local():
     items = hf_models.list_local()
     for it in items:
         it["is_serving"] = (it["repo_id"] == cur)
+    # our own NVFP4-quantized outputs, served by container path
+    for q in quantize.list_quantized():
+        items.append({"repo_id": q["serve_id"], "name": q["name"], "size_gb": q["size_gb"],
+                      "host_path": q["host_path"], "quantized": True,
+                      "is_serving": q["serve_id"] == cur})
     return {"models": items, "hub_dir": str(settings.hub_dir)}
 
 
@@ -117,6 +122,21 @@ def api_models_download(repo_id: str):
 @api.get("/models/download", tags=["Models"], summary="Download progress")
 def api_models_download_status(repo_id: str | None = None):
     return hf_models.download_status(repo_id)
+
+
+@api.get("/quantize/validate", tags=["Models"], summary="Pre-flight: can we NVFP4-quantize this HF model?")
+def api_quant_validate(repo_id: str):
+    return quantize.validate(repo_id)
+
+
+@api.post("/quantize", tags=["Models"], summary="Quantize an HF model to NVFP4 (stops the engine first)")
+def api_quant_start(repo_id: str, calib_samples: int = 64):
+    return quantize.start(repo_id, calib_samples)
+
+
+@api.get("/quantize", tags=["Models"], summary="Quantization job status + stage")
+def api_quant_status():
+    return quantize.status() or {"status": "idle"}
 
 
 app.include_router(api)

@@ -16,6 +16,7 @@ document.querySelectorAll(".tab").forEach(tab => tab.onclick = () => {
   $("#panel-" + tab.dataset.tab).classList.add("active");
   if (tab.dataset.tab === "local") loadLocal();
   if (tab.dataset.tab === "discover" && !DISCOVER_CACHE.length) doDiscover();
+  if (tab.dataset.tab === "quantize") resumeQuant();
 });
 
 // ---- status poll ----
@@ -41,7 +42,7 @@ async function loadModelOptions() {
   const sel = $("#cfg-model"); sel.innerHTML = "";
   (d.models || []).forEach(m => {
     const o = document.createElement("option");
-    o.value = m.repo_id; o.textContent = `${m.repo_id}  (${m.size_gb} GB)`;
+    o.value = m.repo_id; o.textContent = `${m.name || m.repo_id}  (${m.size_gb} GB)`;
     sel.appendChild(o);
   });
   if (!d.models || !d.models.length) sel.innerHTML = '<option value="">— no models downloaded —</option>';
@@ -77,7 +78,9 @@ async function loadLocal() {
   if (!d.models || !d.models.length) { el.innerHTML = '<div class="meta">No models in cache. Use the Discover tab.</div>'; return; }
   d.models.forEach(m => {
     const div = document.createElement("div"); div.className = "item";
-    div.innerHTML = `<span class="name">${m.repo_id}</span>
+    const display = m.name || m.repo_id;
+    div.innerHTML = `<span class="name">${display}</span>
+      ${m.quantized ? '<span class="chip balanced">NVFP4 · ours</span>' : ''}
       <span class="meta">${m.size_gb} GB</span>
       ${m.is_serving ? '<span class="chip serving">serving</span>' : ''}
       <span class="spacer"></span>
@@ -137,6 +140,72 @@ function setEndpoints() {
   const base = location.origin;
   $("#ep-openai").textContent = base + "/v1";
   $("#ep-anthropic").textContent = base + "/v1/messages";
+}
+
+// ---- quantize wizard ----
+const Q_STEPS = ["validate", "stop_engine", "download", "load", "calibrate", "quantize", "export", "done"];
+const Q_LABEL = { validate: "Check", stop_engine: "Free RAM", download: "Download", load: "Load",
+  calibrate: "Calibrate", quantize: "Quantize", export: "Export", done: "Done" };
+let Q_POLL = null;
+
+$("#q-check").onclick = async () => {
+  const repo = $("#q-repo").value.trim();
+  if (!repo) return toast("Paste a HuggingFace repo id first.");
+  const v = $("#q-verdict"); v.style.display = "block"; v.innerHTML = "Checking…";
+  $("#q-run").style.display = "none";
+  let d;
+  try { d = await api("/api/quantize/validate?repo_id=" + encodeURIComponent(repo)); }
+  catch (e) { v.innerHTML = "Check failed: " + e; return; }
+  const cls = d.ok ? (d.arch_known ? "verdict-ok" : "verdict-warn") : "verdict-bad";
+  let body = `<div class="verdict-head ${cls}">${d.ok ? "✓ " : "✕ "}${d.verdict}</div><div class="note" style="color:var(--rf-dim)">${d.reason}</div>`;
+  if (d.ok) {
+    body += `<div style="margin-top:10px">
+      <span class="vstat">arch <b>${d.arch}</b></span>
+      <span class="vstat">in bf16 <b>${d.bf16_gb} GB</b></span>
+      <span class="vstat">→ NVFP4 <b>~${d.out_gb} GB</b></span>
+      <span class="vstat">est <b>~${d.est_min} min</b></span></div>`;
+  } else if (d.fix) { body += `<div class="note" style="margin-top:8px;color:var(--rf-accent)">→ ${d.fix}</div>`; }
+  v.innerHTML = body;
+  $("#q-run").style.display = d.ok ? "block" : "none";
+  $("#q-start").dataset.repo = repo;
+};
+
+$("#q-start").onclick = async () => {
+  const repo = $("#q-start").dataset.repo;
+  if (!confirm(`Quantize ${repo} to NVFP4?\n\nThis stops the running engine and uses the whole box.`)) return;
+  const r = await api("/api/quantize?repo_id=" + encodeURIComponent(repo), { method: "POST" });
+  if (!r.started) return toast(r.reason || "Could not start.");
+  toast("Quantization started — the engine is stopping to free memory.");
+  $("#q-progress").style.display = "block";
+  startQuantPoll();
+};
+
+function renderQuant(j) {
+  const cur = Q_STEPS.indexOf(j.stage);
+  $("#q-stepper").innerHTML = Q_STEPS.map((s, i) => {
+    const st = j.status === "done" || i < cur ? "done" : (i === cur ? "active" : "");
+    return `<span class="step ${st}">${Q_LABEL[s]}</span>`;
+  }).join("");
+  $("#q-fill").style.width = (j.pct || 0) + "%";
+  $("#q-msg").textContent = (j.status === "error" ? "✕ " : "") + (j.msg || "");
+  if (j.log) { const l = $("#q-log"); l.textContent = j.log; l.scrollTop = l.scrollHeight; }
+}
+
+function startQuantPoll() {
+  clearInterval(Q_POLL);
+  Q_POLL = setInterval(async () => {
+    const j = await api("/api/quantize");
+    if (!j || j.status === "idle") { clearInterval(Q_POLL); return; }
+    renderQuant(j);
+    if (j.status === "done") { clearInterval(Q_POLL); toast("✓ " + j.out_name + " ready in Local Models."); loadModelOptions(); }
+    if (j.status === "error") { clearInterval(Q_POLL); toast("Quantize error — see the log."); }
+  }, 2500);
+}
+
+// if a job is already running when the tab opens, resume showing it
+async function resumeQuant() {
+  const j = await api("/api/quantize");
+  if (j && j.status === "running") { $("#q-progress").style.display = "block"; renderQuant(j); startQuantPoll(); }
 }
 
 // ---- boot ----

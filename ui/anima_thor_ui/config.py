@@ -50,9 +50,11 @@ settings = Settings()
 
 # Architectures we have proven (or are confident) load on vLLM 0.23 / sm_110a.
 # nemotron_h + qwen3_5_moe are measured-good; the rest are standard transformers archs.
+# NOTE: gemma4 is excluded — Gemma-4 MoE failed engine init on the 0.23.0 build
+# (arch too new / not yet registered). gemma3/gemma2 are fine.
 SUPPORTED_ARCHS = {
     "qwen3_5_moe", "qwen3_moe", "qwen3_next", "qwen3", "qwen2", "qwen2_moe",
-    "nemotron_h", "nemotron-nas", "llama", "llama4", "gemma4", "gemma3", "gemma2",
+    "nemotron_h", "nemotron-nas", "llama", "llama4", "gemma3", "gemma2",
     "mistral", "mixtral", "phi3", "minimax_m2", "glm_moe_dsa", "deepseek_v3", "deepseek_v4",
 }
 

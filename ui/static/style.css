@@ -88,6 +88,18 @@ input:focus,select:focus{border-color:var(--rf-accent)}
 .endpoint .t{font-family:var(--f-tech);text-transform:uppercase;letter-spacing:1px;color:var(--rf-accent);font-size:11px;margin-bottom:4px}
 .note{font-size:11px;color:var(--rf-muted);margin-top:6px}
 a{color:var(--rf-accent)}
+
+/* ---- quantize wizard ---- */
+.stepper{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.step{font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;border:1px solid var(--rf-border);color:var(--rf-muted)}
+.step.active{border-color:var(--rf-accent);color:var(--rf-accent);background:var(--rf-accent-dim)}
+.step.done{border-color:var(--rf-success);color:var(--rf-success)}
+.qbar{height:8px;background:var(--rf-bg);border:1px solid var(--rf-border);overflow:hidden}
+.qbar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--rf-accent),#ff7a4d);transition:width .6s ease}
+.verdict-head{font-family:var(--f-display);font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.verdict-ok{color:var(--rf-success)} .verdict-warn{color:var(--rf-warning)} .verdict-bad{color:var(--rf-restricted)}
+.vstat{display:inline-block;margin-right:16px;font-size:12px;color:var(--rf-dim)} .vstat b{color:var(--rf-text)}
+
 .toast{position:fixed;bottom:20px;right:20px;background:var(--rf-panel2);border:1px solid var(--rf-accent);
   padding:12px 18px;font-size:12px;z-index:200;max-width:380px;display:none}
 .toast.show{display:block}
