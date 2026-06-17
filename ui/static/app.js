@@ -85,8 +85,20 @@ async function loadLocal() {
       ${m.is_serving ? '<span class="chip serving">serving</span>' : ''}
       <span class="spacer"></span>
       <button class="btn ghost sm" data-serve="${m.repo_id}">serve</button>
+      ${m.quantized ? `<button class="btn sm" data-pub="${m.name}">publish to HF</button>` : ''}
       <button class="btn danger sm" data-del="${m.repo_id}" ${m.is_serving ? "disabled" : ""}>delete</button>`;
     el.appendChild(div);
+  });
+  el.querySelectorAll("[data-pub]").forEach(b => b.onclick = async () => {
+    if (!confirm("Publish " + b.dataset.pub + " publicly to your HuggingFace?")) return;
+    const r = await api("/api/quantize/publish?name=" + encodeURIComponent(b.dataset.pub), { method: "POST" });
+    if (!r.started) return toast(r.reason || "Could not start.");
+    toast("Publishing to " + r.repo_id + " …"); b.disabled = true; b.textContent = "uploading…";
+    const iv = setInterval(async () => {
+      const j = await api("/api/quantize/publish");
+      if (j.status === "done") { clearInterval(iv); b.textContent = "✓ on HF"; toast(j.msg); }
+      else if (j.status === "error") { clearInterval(iv); b.disabled = false; b.textContent = "publish to HF"; toast("Publish error: " + j.msg); }
+    }, 3000);
   });
   el.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     if (!confirm("Delete " + b.dataset.del + " from disk?")) return;

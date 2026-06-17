@@ -206,3 +206,75 @@ def list_quantized() -> list[dict]:
                 out.append({"name": d.name, "serve_id": f"{OUT_ROOT_CONTAINER}/{d.name}",
                             "host_path": str(d), "size_gb": gb})
     return out
+
+
+# ---------------------------------------------------------------- publish to HF
+_pub: dict | None = None
+_pub_lock = threading.Lock()
+
+
+def _model_card(name: str, repo_id: str, base: str) -> str:
+    return f"""---
+license: apache-2.0
+base_model: {base}
+tags: [nvfp4, modelopt, quantized, jetson, thor, vllm, anima]
+---
+
+# {name}
+
+**NVFP4** quantization of [`{base}`](https://hf.co/{base}), produced with NVIDIA TensorRT
+Model Optimizer for the **NVIDIA Jetson AGX Thor** (Blackwell `sm_110a`) using
+[**anima-thor-ui**](https://github.com/RobotFlow-Labs/anima-vllm-thor).
+
+Runs on the [`anima-vllm:thor-latest`](https://github.com/RobotFlow-Labs/anima-vllm-thor) engine
+(vLLM 0.23 · PyTorch 2.11 · CUDA 13).
+
+## Serve
+```bash
+vllm serve {repo_id} --trust-remote-code --attention-backend TRITON_ATTN \\
+  --gpu-memory-utilization 0.7 --kv-cache-dtype fp8 --max-model-len 32768
+```
+
+Quantized by RobotFlow Labs for the ANIMA edge-AI stack.
+"""
+
+
+def publish_status() -> dict | None:
+    with _pub_lock:
+        return dict(_pub) if _pub else None
+
+
+def publish(name: str, base_model: str = "", private: bool = False) -> dict:
+    global _pub
+    d = OUT_ROOT / name
+    if not (d / "config.json").exists():
+        return {"started": False, "reason": "quantized model not found"}
+    with _pub_lock:
+        if _pub and _pub["status"] == "running":
+            return {"started": False, "reason": "a publish is already running"}
+        repo_id = f"{settings.HF_USER}/{name}"
+        _pub = {"name": name, "repo_id": repo_id, "status": "running", "msg": "starting…",
+                "url": f"https://huggingface.co/{repo_id}"}
+    threading.Thread(target=_do_publish, args=(name, d, repo_id, base_model, private), daemon=True).start()
+    return {"started": True, "repo_id": repo_id}
+
+
+def _do_publish(name, d, repo_id, base_model, private):
+    global _pub
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi(token=settings.HF_TOKEN)
+        base = base_model or name.replace("-NVFP4-anima", "")
+        (d / "README.md").write_text(_model_card(name, repo_id, base))
+        with _pub_lock:
+            _pub["msg"] = "creating repo…"
+        api.create_repo(repo_id, private=private, exist_ok=True, repo_type="model")
+        with _pub_lock:
+            _pub["msg"] = "uploading (this takes a while)…"
+        api.upload_folder(folder_path=str(d), repo_id=repo_id, repo_type="model",
+                          commit_message="Upload NVFP4 build (anima-thor-ui)")
+        with _pub_lock:
+            _pub.update(status="done", msg=f"✓ published → {repo_id}")
+    except Exception as e:  # noqa: BLE001
+        with _pub_lock:
+            _pub.update(status="error", msg=str(e)[:300])

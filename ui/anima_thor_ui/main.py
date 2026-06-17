@@ -139,6 +139,16 @@ def api_quant_status():
     return quantize.status() or {"status": "idle"}
 
 
+@api.post("/quantize/publish", tags=["Models"], summary="Publish a quantized model to HuggingFace")
+def api_quant_publish(name: str, base_model: str = "", private: bool = False):
+    return quantize.publish(name, base_model, private)
+
+
+@api.get("/quantize/publish", tags=["Models"], summary="Publish job status")
+def api_quant_publish_status():
+    return quantize.publish_status() or {"status": "idle"}
+
+
 app.include_router(api)
 
 

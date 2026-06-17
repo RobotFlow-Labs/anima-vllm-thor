@@ -37,6 +37,9 @@ class Settings:
     # leave headroom for KV-cache + activations + system; weights must fit below this
     WEIGHT_BUDGET_GB: float = float(os.environ.get("ANIMA_WEIGHT_BUDGET_GB", "95"))
 
+    # HF account to publish our quantized models under
+    HF_USER: str = os.environ.get("ANIMA_HF_USER", "ilessio-aiflowlab")
+
     @property
     def vllm_base_url(self) -> str:
         return f"http://{self.VLLM_HOST}:{self.VLLM_PORT}"
