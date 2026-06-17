@@ -1,0 +1,13 @@
+ANIMA vLLM Thor
+Copyright (c) 2026 RobotFlow Labs / AIFLOW LABS LIMITED
+
+This repository (Dockerfile, scripts, docs) is the build RECIPE and is freely reusable.
+
+The Docker IMAGE produced by this recipe is built FROM the NVIDIA base container
+`ghcr.io/nvidia-ai-iot/vllm:latest-jetson-thor` and bundles:
+  - vLLM (Apache-2.0)
+  - PyTorch (BSD-3-Clause)
+  - NVIDIA CUDA runtime + driver components (NVIDIA Deep Learning Container / CUDA EULA)
+
+Redistribution of the IMAGE is subject to the NVIDIA base-container and CUDA license terms.
+If those terms are restrictive for your use, build the image yourself from this recipe.
