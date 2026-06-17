@@ -36,6 +36,9 @@ RUN pip install --no-cache-dir flashinfer-python==0.6.8 || true
 # (7) compressed-tensors must be 0.17.x (NVFP4); the base's is stale (missing compressors.pack_quantized)
 RUN pip install --no-cache-dir "compressed-tensors==0.17.1"
 
+# (9) numba — required by the ngram speculative-decoding proposer (vLLM wants 0.65.0; 0.65.1 works)
+RUN pip install --no-cache-dir numba
+
 # (8) vLLM 0.23 eagerly imports ALL quant backends; guard the ones not packaged for arm64
 #     (humming/inc/fp_quant/torchao/quark/deepseek_v4/mxfp4) so NVFP4/compressed-tensors still load
 COPY scripts/patch_quant.py /tmp/patch_quant.py

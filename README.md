@@ -71,9 +71,15 @@ Verify sm_110 first (fast, ~2 min): `scripts/verify_sm110.py` inside the image (
 | Nemotron-3-Nano-30B-A3B | NVFP4 | 8K | **67.7** | **240** | 0.09 s | matches vLLM 0.19 → **no regression** |
 | **Qwen3.6-35B-A3B** | NVFP4 | 32K | **79.4** | **294** | 0.07 s | **vLLM 0.19 CANNOT load this** (`KeyError: w2_input_scale`) — the whole point |
 
-Decode is memory-bandwidth-bound (273 GB/s, 3B active per token). These are without speculative decoding;
-**ngram / MTP spec-decode is the lever past 100 tok/s** (`--speculative-config '{"method":"ngram",...}'`).
-Big context is ~free over 100K (KV reserved, not read) until the conversation actually fills it.
+Decode is memory-bandwidth-bound (273 GB/s, ~3B active params/token). Big context is ~free over 100K
+(KV is reserved, not read) until the conversation actually fills it.
+
+**Speculative decoding — honest result on this config:** we tested both and **both *reduced* general-prompt
+throughput** (ngram 39 tok/s, MTP 50 tok/s vs 79.4 baseline). Draft+verify overhead exceeds the acceptance
+gain here, compounded by the SM100-gated fused-MoE-FP4 kernel falling back to Marlin on sm_110. Spec-decode
+may still win on **decode-heavy / high-repetition (code) workloads** or with a FlashInfer MoE backend — but
+for general use on Thor, **no spec-decode (79 tok/s single / 294 aggregate) is the best config.** Don't
+enable it blindly; measure for your workload.
 
 ## Hardware / software target
 Jetson AGX Thor · Blackwell `sm_110a` · 128 GB unified LPDDR5X (~273 GB/s) · JetPack 7 / L4T r38.4 ·
