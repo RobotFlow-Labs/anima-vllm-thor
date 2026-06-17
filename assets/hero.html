@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANIMA-VLLM-THOR // HERO</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --rf-accent: #FF3B00;
+      --rf-accent-glow: rgba(255, 59, 0, 0.3);
+      --rf-accent-dim: rgba(255, 59, 0, 0.15);
+      --rf-bg: #050505;
+      --rf-bg-panel: #1A1A1A;
+      --rf-border: #333333;
+      --rf-text: #ffffff;
+      --rf-text-dim: #999999;
+      --rf-text-muted: #666666;
+      --rf-success: #00FF88;
+      --rf-nv: #76B900;            /* NVIDIA green — used only for attribution chrome */
+      --rf-font-display: 'Oswald', sans-serif;
+      --rf-font-mono: 'JetBrains Mono', monospace;
+      --rf-font-tech: 'Chakra Petch', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--rf-font-mono);
+      background: var(--rf-bg);
+      color: var(--rf-text);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+      background: repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    }
+    .hero-wrap {
+      position: relative; width: 1280px; height: 640px;
+      background:
+        radial-gradient(900px 400px at 78% 8%, rgba(255,59,0,0.10), transparent 60%),
+        linear-gradient(rgba(255,59,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,59,0,0.04) 1px, transparent 1px),
+        var(--rf-bg);
+      background-size: auto, 40px 40px, 40px 40px, auto;
+      border: 1px solid var(--rf-border);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      overflow: hidden;
+    }
+    .hero-wrap::before, .hero-wrap::after {
+      content: ''; position: absolute; width: 44px; height: 44px;
+      border-color: var(--rf-accent); border-style: solid;
+    }
+    .hero-wrap::before { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+    .hero-wrap::after  { bottom: 48px; right: 12px; border-width: 0 2px 2px 0; }
+    .corner-tr, .corner-bl { position: absolute; width: 44px; height: 44px; border-color: var(--rf-accent); border-style: solid; }
+    .corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+    .corner-bl { bottom: 48px; left: 12px; border-width: 0 0 2px 2px; }
+    .glow-line {
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--rf-accent), transparent);
+      animation: scan 3s ease-in-out infinite;
+    }
+    @keyframes scan { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+    .pillar-tag { position: absolute; top: 20px; left: 64px; font-size: 10px; color: var(--rf-accent); letter-spacing: 3px; text-transform: uppercase; }
+    .credits { position: absolute; top: 20px; right: 64px; font-size: 10px; color: var(--rf-text-dim); letter-spacing: 1px; text-align: right; line-height: 1.9; }
+    .credits b { color: var(--rf-nv); font-weight: 700; }
+    .credits .vl { color: var(--rf-accent); font-weight: 700; }
+
+    .hero-tag {
+      font-family: var(--rf-font-mono); font-size: 11px; letter-spacing: 3px; color: var(--rf-accent);
+      text-transform: uppercase; margin-bottom: 14px; padding: 5px 16px;
+      border: 1px solid var(--rf-accent); background: rgba(255,59,0,0.08);
+    }
+    .module-code { font-family: var(--rf-font-mono); font-size: 13px; color: var(--rf-text-dim); letter-spacing: 5px; margin-bottom: 10px; }
+    .hero-title { font-family: var(--rf-font-display); font-size: 78px; font-weight: 900; letter-spacing: -1px; line-height: .95; text-transform: uppercase; text-align: center; }
+    .hero-title .accent { color: var(--rf-accent); }
+    .hero-subtitle { font-family: var(--rf-font-tech); font-size: 18px; font-weight: 500; color: var(--rf-text-dim); letter-spacing: 3px; margin-top: 8px; margin-bottom: 22px; text-transform: uppercase; }
+    .hero-desc { font-size: 14px; color: var(--rf-text-dim); max-width: 760px; text-align: center; line-height: 1.7; margin-bottom: 26px; }
+    .hero-desc .hl { color: var(--rf-text); font-weight: 700; }
+    .hero-desc .nv { color: var(--rf-nv); font-weight: 700; }
+
+    .stats-row { display: flex; gap: 24px; margin-bottom: 26px; }
+    .stat { text-align: center; padding: 12px 26px; border: 1px solid var(--rf-border); background: var(--rf-bg-panel); min-width: 150px; }
+    .stat-value { font-family: var(--rf-font-display); font-size: 34px; font-weight: 700; color: var(--rf-accent); line-height: 1; }
+    .stat-label { font-size: 10px; letter-spacing: 2px; color: var(--rf-text-dim); text-transform: uppercase; margin-top: 6px; }
+
+    .tag-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .tag { font-size: 10px; letter-spacing: 1px; padding: 5px 13px; border: 1px solid var(--rf-border); color: var(--rf-text-dim); text-transform: uppercase; }
+    .tag.active { border-color: var(--rf-success); color: var(--rf-success); }
+
+    .status-bar {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 36px; background: var(--rf-bg-panel);
+      border-top: 1px solid var(--rf-border); display: flex; align-items: center; padding: 0 24px;
+      gap: 26px; font-size: 11px; color: var(--rf-text-dim); letter-spacing: 1px;
+    }
+    .status-bar .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; }
+    .dot.green { background: var(--rf-success); box-shadow: 0 0 8px var(--rf-success); }
+    .dot.orange { background: #FFB800; box-shadow: 0 0 8px #FFB800; }
+  </style>
+</head>
+<body>
+  <div class="hero-wrap">
+    <div class="glow-line"></div>
+    <div class="corner-tr"></div>
+    <div class="corner-bl"></div>
+
+    <div class="pillar-tag">PILLAR 01 — ANIMA EDGE INFERENCE</div>
+    <div class="credits">
+      ENGINE: <span class="vl">vLLM 0.23</span> · APACHE-2.0<br>
+      HARDWARE: <b>NVIDIA JETSON AGX THOR</b><br>
+      BUILD: ROBOTFLOW LABS
+    </div>
+
+    <div class="hero-tag">MODULE THOR-INF-01 // sm_110a NATIVE</div>
+    <div class="module-code">ANIMA-VLLM-THOR</div>
+    <div class="hero-title"><span class="accent">LATEST vLLM</span><br>ON JETSON THOR</div>
+    <div class="hero-subtitle">Bleeding-Edge Inference · Blackwell sm_110a · CUDA 13</div>
+
+    <p class="hero-desc">
+      We compiled <span class="hl">vLLM 0.23 + PyTorch 2.11 + CUDA 13</span> natively for Blackwell <span class="hl">sm_110a</span> —
+      and it runs <span class="hl">NVFP4 MoE</span> checkpoints that <span class="nv">NVIDIA's own Jetson image (stuck on vLLM 0.19) cannot load.</span><br>
+      One reproducible Dockerfile. Nine hard-won gotchas. The newest engine, on the newest edge GPU.
+    </p>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">0.23</div><div class="stat-label">vLLM — newest</div></div>
+      <div class="stat"><div class="stat-value">294</div><div class="stat-label">tok/s · aggregate</div></div>
+      <div class="stat"><div class="stat-value">sm_110a</div><div class="stat-label">native blackwell</div></div>
+      <div class="stat"><div class="stat-value">4&nbsp;ahead</div><div class="stat-label">vs nvidia 0.19</div></div>
+    </div>
+
+    <div class="tag-row">
+      <span class="tag active">vLLM 0.23</span>
+      <span class="tag active">NVFP4 MoE</span>
+      <span class="tag">PYTORCH 2.11</span>
+      <span class="tag">CUDA 13</span>
+      <span class="tag">OPENAI /v1</span>
+      <span class="tag active">JETSON THOR</span>
+    </div>
+
+    <div class="status-bar">
+      <span><span class="dot green"></span>NEMOTRON-3 NANO: OPERATIONAL</span>
+      <span><span class="dot green"></span>QWEN3.6-35B-A3B: OPERATIONAL</span>
+      <span><span class="dot green"></span>OPENAI /v1: LIVE</span>
+      <span><span class="dot orange"></span>DOCKER HUB: STAGING</span>
+      <span style="margin-left:auto; color:#666;">vLLM 0.23.1 · TORCH 2.11 · CUDA 13.0 · arm64</span>
+    </div>
+  </div>
+</body>
+</html>
