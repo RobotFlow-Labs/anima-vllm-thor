@@ -105,23 +105,34 @@ async function doDiscover() {
   const d = await api("/api/models/discover?query=" + encodeURIComponent($("#disc-q").value || "NVFP4") + "&limit=40");
   $("#disc-budget").textContent = `≤${d.budget_gb}GB · ${d.bandwidth_gbs}GB/s`;
   DISCOVER_CACHE = d.models || []; el.innerHTML = "";
-  if (!DISCOVER_CACHE.length) { el.innerHTML = '<div class="meta">No NVFP4 models found.</div>'; return; }
+  if (!DISCOVER_CACHE.length) { el.innerHTML = '<div class="meta">Nothing found. For an exact model, paste its full <code>org/name</code>.</div>'; return; }
   DISCOVER_CACHE.forEach(m => {
-    const cls = { "ROCKS": "rocks", "BALANCED": "balanced", "SMART/SLOW": "slow", "TOO BIG": "big", "UNTESTED ARCH": "untested" }[m.verdict] || "";
+    const cls = { "ROCKS": "rocks", "BALANCED": "balanced", "SMART/SLOW": "slow", "TOO BIG": "big",
+      "UNTESTED ARCH": "untested", "QUANTIZE → NVFP4": "quant", "TOO BIG TO QUANTIZE": "big" }[m.verdict] || "";
     const tps = m.est_single_tps ? `~${m.est_single_tps} tok/s` : "—";
     const sz = m.weight_gb ? `${m.weight_gb} GB` : "size ?";
+    const meta = m.needs_quantize
+      ? `${m.arch} · ${m.bf16_gb} GB bf16 → ~${m.weight_gb} GB NVFP4 · not quantized yet`
+      : `${m.arch} · ${m.active_b ? m.active_b + "B active" : "dense"} · ${sz} · est ${tps}`;
+    const action = m.needs_quantize
+      ? `<button class="btn sm" data-quant="${m.repo_id}">→ quantize</button>`
+      : `<button class="btn sm" data-dl="${m.repo_id}" ${m.fits ? "" : "disabled title='too big for Thor'"}>download</button>`;
     const div = document.createElement("div"); div.className = "item";
     div.innerHTML = `<span class="name">${m.repo_id}</span>
       <span class="chip ${cls}">${m.verdict}</span>
-      <span class="meta">${m.arch} · ${m.active_b ? m.active_b + "B active" : "dense"} · ${sz} · est ${tps}</span>
-      <span class="spacer"></span>
-      <button class="btn sm" data-dl="${m.repo_id}" ${m.fits ? "" : "disabled title='too big for Thor'"}>download</button>`;
+      <span class="meta">${meta}</span>
+      <span class="spacer"></span>${action}`;
     el.appendChild(div);
   });
   el.querySelectorAll("[data-dl]").forEach(b => b.onclick = async () => {
     const r = await api("/api/models/download?repo_id=" + encodeURIComponent(b.dataset.dl), { method: "POST" });
     if (r.started) { toast("Download started: " + b.dataset.dl); trackDownload(b.dataset.dl, b); }
     else toast(r.reason || "Already downloading.");
+  });
+  el.querySelectorAll("[data-quant]").forEach(b => b.onclick = () => {
+    $("#q-repo").value = b.dataset.quant;
+    document.querySelector('.tab[data-tab="quantize"]').click();
+    $("#q-check").click();
   });
 }
 function trackDownload(repo, btn) {

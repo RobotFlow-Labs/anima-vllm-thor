@@ -139,10 +139,50 @@ def _verdict(fits, arch_ok, est_tps) -> str:
     return "SMART/SLOW"
 
 
+def direct_entry(repo_id: str) -> dict | None:
+    """Look up one exact repo. NVFP4 -> normal ranked entry; otherwise a
+    'quantize this' candidate so a pasted bf16 model still shows in Discover."""
+    try:
+        info = _api.model_info(repo_id, files_metadata=True)
+    except Exception:  # noqa: BLE001
+        return None
+    tags = list(getattr(info, "tags", []) or [])
+    dls = getattr(info, "downloads", 0) or 0
+    likes = getattr(info, "likes", 0) or 0
+    s = score_model(repo_id, tags, dls, likes)
+    if s is not None:
+        return s  # already NVFP4 — rank it normally
+    cfg = getattr(info, "config", None) or {}
+    arch = (cfg.get("model_type") or "").lower()
+    bf16 = round(sum((x.size or 0) for x in (info.siblings or [])
+                     if x.rfilename.endswith(".safetensors")) / 1e9, 1)
+    if bf16 == 0:
+        m = re.search(r"(\d+(?:\.\d+)?)B", repo_id)
+        bf16 = round(float(m.group(1)) * 2, 1) if m else 0.0
+    out_gb = round(bf16 * 0.28, 1) if bf16 else None
+    quant_ok = 0 < bf16 <= 100
+    return {
+        "repo_id": repo_id, "arch": arch or "(unknown)", "arch_supported": False,
+        "total_b": None, "active_b": None, "weight_gb": out_gb, "fits": False,
+        "est_single_tps": None, "downloads": dls, "likes": likes, "rank": 1e9,
+        "verdict": "QUANTIZE → NVFP4" if quant_ok else "TOO BIG TO QUANTIZE",
+        "needs_quantize": quant_ok, "bf16_gb": bf16,
+    }
+
+
 def discover(query: str = "NVFP4", limit: int = 40) -> list[dict]:
-    """Search the Hub for NVFP4 models and rank them for Thor."""
+    """Search the Hub for NVFP4 models and rank them for Thor.
+
+    If the query is an exact repo id ('org/name'), look it up directly and place
+    it first — even non-NVFP4 (it becomes a quantize candidate)."""
     scored: list[dict] = []
-    seen = set()
+    seen: set[str] = set()
+    q = query.strip()
+    if "/" in q:
+        d = direct_entry(q)
+        if d:
+            scored.append(d)
+            seen.add(q)
     # general NVFP4 search + the nvidia org's curated NVFP4 set (best source)
     sources = (
         _api.list_models(search=query, sort="trendingScore", limit=limit * 3, full=True),

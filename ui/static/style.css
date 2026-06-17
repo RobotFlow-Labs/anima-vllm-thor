@@ -80,6 +80,7 @@ input:focus,select:focus{border-color:var(--rf-accent)}
 .chip.balanced{border-color:var(--rf-accent);color:var(--rf-accent)}
 .chip.slow{border-color:var(--rf-warning);color:var(--rf-warning)}
 .chip.big,.chip.untested{border-color:var(--rf-restricted);color:var(--rf-restricted)}
+.chip.quant{border-color:var(--rf-nv);color:var(--rf-nv)}
 .chip.serving{border-color:var(--rf-success);color:var(--rf-success);background:rgba(0,255,136,.08)}
 
 /* ---- api panel ---- */

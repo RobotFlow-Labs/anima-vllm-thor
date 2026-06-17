@@ -25,8 +25,9 @@ _api = HfApi(token=settings.HF_TOKEN)
 # Dense + simple-MoE archs ModelOpt's NVFP4 PTQ handles well. Hybrid/linear-attention
 # archs (mamba2 nemotron_h, deltanet qwen3_next) are NOT reliably supported — block them.
 QUANTIZABLE_ARCHS = {
-    "llama", "qwen2", "qwen3", "qwen3_moe", "qwen2_moe", "mistral", "mixtral",
-    "gemma2", "gemma3", "phi3", "phi", "mpt", "gpt_neox", "starcoder2", "cohere",
+    "llama", "qwen2", "qwen3", "qwen3_moe", "qwen2_moe", "qwen3_5", "qwen3_5_moe",
+    "mistral", "mixtral", "gemma2", "gemma3", "phi3", "phi", "mpt", "gpt_neox",
+    "starcoder2", "cohere",
 }
 HYBRID_BLOCKED = {"nemotron_h", "qwen3_next", "mamba", "mamba2", "jamba", "minimax_m2"}
 ALREADY_Q_HINTS = ("nvfp4", "fp4", "awq", "gptq", "fp8", "int4", "int8", "modelopt", "compressed-tensors")
