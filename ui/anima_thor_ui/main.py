@@ -298,7 +298,10 @@ async def _proxy(path: str, request: Request):
             r = await c.post(f"{settings.vllm_base_url}{path}", content=body, headers=headers)
             return JSONResponse(r.json(), status_code=r.status_code)
         except httpx.ConnectError:
-            raise HTTPException(503, "engine offline — start it from the dashboard")
+            # running but connect-refused = warming up; otherwise truly offline
+            if vllm_manager.is_running():
+                raise HTTPException(503, "model is loading — retry shortly")
+            raise HTTPException(503, "engine offline — start a model in the ANIMA Thor UI")
 
 
 @oai.post("/v1/chat/completions", summary="Chat completions (OpenAI / Factory Droid)")
