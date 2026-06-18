@@ -11,7 +11,9 @@ No auth by design (single-user edge box). HF token is read from the environment.
 from __future__ import annotations
 
 import logging
+import threading
 import time as _time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
@@ -25,7 +27,16 @@ from .anthropic_api import router as anthropic_router
 from .ollama_api import router as ollama_router
 from .config import settings
 
+
+@asynccontextmanager
+async def _lifespan(app):
+    # self-heal: serve the last/default model on startup if the box is idle
+    threading.Thread(target=vllm_manager.autoserve_if_idle, daemon=True).start()
+    yield
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="ANIMA Thor UI",
     version="0.1.0",
     description=(
@@ -162,10 +173,6 @@ def api_reboot():
         raise HTTPException(500, str(e))
 
 
-@app.on_event("startup")
-def _autoserve():
-    import threading
-    threading.Thread(target=vllm_manager.autoserve_if_idle, daemon=True).start()
 
 
 @api.get("/models/local", tags=["Models"], summary="List downloaded models")
