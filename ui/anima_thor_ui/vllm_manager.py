@@ -7,6 +7,7 @@ the arm64 image tiny and the behaviour identical to the documented commands).
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import time
@@ -16,6 +17,7 @@ from .config import settings
 
 _started_at: float | None = None
 _current: dict | None = None  # the ServeConfig used for the running container
+_STATE = settings.HF_HOME / "anima_last_serve.json"   # persists across reboots (mounted)
 
 
 @dataclass
@@ -154,6 +156,11 @@ def serve(cfg: ServeConfig) -> dict:
         raise RuntimeError(f"docker run failed: {r.stderr.strip() or r.stdout.strip()}")
     _started_at = time.time()
     _current = asdict(cfg)
+    try:  # remember what we served so the box self-heals to the SAME state on boot
+        _STATE.write_text(json.dumps({"model": cfg.model, "profile": cfg.profile,
+                                      "max_model_len": cfg.max_model_len, "served_name": cfg.served_name}))
+    except OSError:
+        pass
     return {"started": True, "container": settings.VLLM_CONTAINER, "config": _current, "auto_util": util}
 
 
@@ -172,15 +179,24 @@ def reboot_host() -> dict:
 
 
 def autoserve_if_idle() -> None:
-    """Called on UI startup — serve the configured model if nothing is running yet."""
-    if not settings.AUTOSERVE_MODEL:
-        return
+    """Called on UI startup — serve the LAST-served model (or the configured default)
+    if nothing is running yet, so the box self-heals to the same state after a boot."""
     try:
         if is_running():
             return
+        last = {}
+        if _STATE.exists():
+            try:
+                last = json.loads(_STATE.read_text())
+            except (OSError, ValueError):
+                last = {}
+        model = last.get("model") or settings.AUTOSERVE_MODEL
+        if not model:
+            return
         time.sleep(8)  # let the box settle after a boot before profiling memory
-        serve(ServeConfig(model=settings.AUTOSERVE_MODEL, profile=settings.AUTOSERVE_PROFILE,
-                          gpu_memory_utilization="auto"))
+        serve(ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
+                          max_model_len=last.get("max_model_len", 32768),
+                          served_name=last.get("served_name", ""), gpu_memory_utilization="auto"))
     except Exception:  # noqa: BLE001 — never crash startup
         pass
 
