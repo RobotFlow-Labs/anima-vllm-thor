@@ -111,6 +111,20 @@ def test_model_size_gb_unknown_is_zero():
     assert vllm_manager.model_size_gb("nope/does-not-exist-123") == 0.0
 
 
+def test_nvfp4_and_arch_detection():
+    assert hf_models._is_nvfp4(["nvfp4", "modelopt"], "x/y")
+    assert hf_models._is_nvfp4([], "nvidia/Foo-NVFP4")          # name hint
+    assert not hf_models._is_nvfp4(["text-generation"], "meta/Llama-3-8B")
+    assert hf_models._arch_of(["qwen3_5_moe", "safetensors"]) == "qwen3_5_moe"
+    assert hf_models._arch_of(["unknown_arch"]) is None
+
+
+def test_wait_mem_stable_returns_on_flat(monkeypatch):
+    monkeypatch.setattr(vllm_manager.time, "sleep", lambda *_: None)   # no real waiting
+    monkeypatch.setattr(vllm_manager, "mem_gb", lambda: (100.0, 128.0))  # perfectly flat
+    assert vllm_manager.wait_mem_stable(max_wait=80) == 100.0
+
+
 def test_optional_api_key_gate(monkeypatch):
     from fastapi.testclient import TestClient
     from anima_thor_ui import main
