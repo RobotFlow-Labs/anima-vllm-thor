@@ -36,7 +36,9 @@ async function poll() {
     if (running) {
       const tel = await api("/api/telemetry").catch(() => null);
       if (tel && tel.running > 0) {
-        $("#t-tps").textContent = tel.tok_s; $("#t-tps-l").textContent = `tok/s live · ${tel.running} req`; shownTps = true;
+        $("#t-tps").textContent = tel.tok_s;
+        $("#t-tps-l").textContent = `tok/s live · ${tel.running} req${tel.waiting ? ` +${tel.waiting} queued` : ""}`;
+        shownTps = true;
       }
     }
     if (!shownTps && s.mem_avail_gb != null) { $("#t-tps").textContent = s.mem_avail_gb + "G"; $("#t-tps-l").textContent = "free RAM (GB)"; }
