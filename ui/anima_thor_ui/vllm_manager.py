@@ -70,13 +70,33 @@ def mem_gb() -> tuple[float, float]:
     return round(avail, 1), round(total, 1)
 
 
-def auto_util(reserve_gb: float = 6.0) -> float:
+def auto_util(reserve_gb: float = 4.0) -> float:
     """Pick a gpu-memory-utilization that fits current free memory (avoids vLLM's
-    'free memory < desired' error on Thor's ~63 GB GPU reservation + any residual)."""
+    'free memory < desired' error). Low floor (0.12) so small models still serve on
+    a leaked box; capped at 0.85."""
     avail, total = mem_gb()
     if total <= 0:
         return 0.55
-    return round(max(0.3, min(0.85, (avail - reserve_gb) / total)), 2)
+    return round(max(0.12, min(0.85, (avail - reserve_gb) / total)), 2)
+
+
+def model_size_gb(model: str) -> float:
+    """Best-effort on-disk size (GiB) of a model — the resident weight footprint.
+    Handles both a quantized export path and an HF cache repo dir."""
+    from pathlib import Path
+    # engine-container path → the UI container's mounted host path
+    m = model.replace("/root/.cache/huggingface/", str(settings.HF_HOME).rstrip("/") + "/")
+    d = Path(m) if Path(m).is_dir() else settings.hub_dir / ("models--" + model.replace("/", "--"))
+    if not d.exists():
+        return 0.0
+    total = 0
+    for f in d.rglob("*"):
+        if f.is_file() and not f.is_symlink():
+            try:
+                total += f.stat().st_size
+            except OSError:
+                pass
+    return round(total / 1e9, 1)
 
 
 def is_running() -> bool:
@@ -106,14 +126,17 @@ def serve(cfg: ServeConfig) -> dict:
     stop()  # graceful replace
     time.sleep(3)  # let the prior CUDA context fully release before profiling
 
-    # low-memory guard — Thor's GPU reservation + vLLM's leak-on-teardown can leave too
-    # little free RAM to serve anything. Fail with an actionable message, not a cryptic crash.
+    # model-size-aware low-memory guard — need room for weights + a little KV/activation.
+    # (Thor's GPU reservation + vLLM's leak-on-teardown can strand free RAM; only a reboot
+    # fully reclaims it. But a SMALL model can still serve on a partly-leaked box.)
     avail, total = mem_gb()
-    if total > 0 and avail < 30:
+    wsz = model_size_gb(cfg.model)
+    need = (wsz + 6) if wsz else 30        # weights + KV headroom; fall back to 30 if unknown
+    if total > 0 and avail < need:
         raise RuntimeError(
-            f"Only {avail} GB free of {total} GB — too low to serve (likely leaked GPU memory "
-            f"from a prior engine). Reboot Thor to reclaim it (the UI auto-restarts): "
-            f"`ssh thor sudo reboot`.")
+            f"Only {avail} GB free of {total} GB — not enough for this model (~{wsz or '?'} GB weights "
+            f"+ headroom). Likely leaked GPU memory from a prior engine; reboot Thor to reclaim it "
+            f"(the UI auto-restarts + auto-serves): use the Reboot button or `ssh thor sudo reboot`.")
 
     cfg.apply_profile()
     util = auto_util() if str(cfg.gpu_memory_utilization) in ("auto", "0", "0.0", "None") \
