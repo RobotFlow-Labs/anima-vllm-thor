@@ -144,8 +144,28 @@ def api_logs(tail: int = 80):
     return {"logs": vllm_manager.logs(tail)}
 
 
+def _validate_serve(req: ServeRequest):
+    """Clear 400s for bad input — beats a cryptic docker/vLLM failure later."""
+    if not req.model.strip():
+        raise HTTPException(400, "model is required")
+    if str(req.gpu_memory_utilization).lower() != "auto":
+        try:
+            u = float(req.gpu_memory_utilization)
+        except ValueError:
+            raise HTTPException(400, "gpu_memory_utilization must be 'auto' or a number 0.1–0.95")
+        if not 0.1 <= u <= 0.95:
+            raise HTTPException(400, "gpu_memory_utilization out of range (0.1–0.95)")
+    if req.profile not in ("latency", "throughput"):
+        raise HTTPException(400, "profile must be 'latency' or 'throughput'")
+    if req.spec_decode not in ("off", "ngram", "mtp"):
+        raise HTTPException(400, "spec_decode must be off | ngram | mtp")
+    if not 1024 <= req.max_model_len <= 1_000_000:
+        raise HTTPException(400, "max_model_len out of range")
+
+
 @api.post("/serve", tags=["Engine"], summary="Launch the engine with a model + config")
 def api_serve(req: ServeRequest):
+    _validate_serve(req)
     try:
         cfg = vllm_manager.ServeConfig(
             model=req.model, served_name=req.served_name,

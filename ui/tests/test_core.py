@@ -125,6 +125,17 @@ def test_wait_mem_stable_returns_on_flat(monkeypatch):
     assert vllm_manager.wait_mem_stable(max_wait=80) == 100.0
 
 
+def test_serve_input_validation():
+    from fastapi.testclient import TestClient
+    from anima_thor_ui import main
+    with TestClient(main.app) as c:
+        assert c.post("/api/serve", json={"model": ""}).status_code == 400
+        assert c.post("/api/serve", json={"model": "x", "gpu_memory_utilization": "nope"}).status_code == 400
+        assert c.post("/api/serve", json={"model": "x", "gpu_memory_utilization": "1.5"}).status_code == 400
+        assert c.post("/api/serve", json={"model": "x", "profile": "turbo"}).status_code == 400
+        assert c.post("/api/serve", json={"model": "x", "max_model_len": 10}).status_code == 400
+
+
 def test_optional_api_key_gate(monkeypatch):
     from fastapi.testclient import TestClient
     from anima_thor_ui import main
