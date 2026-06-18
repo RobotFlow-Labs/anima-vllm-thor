@@ -177,8 +177,13 @@ def _run_worker(repo_id: str, cont_out: str, calib_samples: int) -> int:
         "-v", f"{worker}:/tmp/quantize_nvfp4.py:ro",
         settings.VLLM_IMAGE,
         "bash", "-lc",
-        f"pip install -q nvidia-modelopt 2>/dev/null; "
-        f"python /tmp/quantize_nvfp4.py --model '{repo_id}' --out '{cont_out}' --calib {calib_samples}",
+        # nvidia-modelopt for NVFP4 PTQ; upgrade transformers (some 2026 models ship v5
+        # tokenizers like TokenizersBackend that the image's v4 can't load). Throwaway container.
+        f"pip install -q nvidia-modelopt 2>/dev/null; pip install -q -U transformers 2>/dev/null; "
+        f"python /tmp/quantize_nvfp4.py --model '{repo_id}' --out '{cont_out}' --calib {calib_samples}; rc=$?; "
+        # hand the export back to the host user (the worker runs as root → files would be
+        # root-owned and undeletable from the UI/file-manager). Match the mounted cache owner.
+        f"chown -R $(stat -c %u:%g /root/.cache/huggingface) '{cont_out}' 2>/dev/null || true; exit $rc",
     ]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
     buf: list[str] = []
@@ -214,28 +219,88 @@ _pub_lock = threading.Lock()
 
 
 def _model_card(name: str, repo_id: str, base: str) -> str:
+    short = name.replace("-NVFP4-anima", "")
     return f"""---
 license: apache-2.0
 base_model: {base}
-tags: [nvfp4, modelopt, quantized, jetson, thor, vllm, anima]
+base_model_relation: quantized
+pipeline_tag: text-generation
+library_name: transformers
+tags:
+  - nvfp4
+  - fp4
+  - modelopt
+  - quantized
+  - compressed-tensors
+  - vllm
+  - jetson
+  - jetson-thor
+  - edge
+  - anima
+quantized_by: {settings.HF_USER}
 ---
 
-# {name}
+<p align="center">
+  <img alt="NVFP4" src="https://img.shields.io/badge/quant-NVFP4-FF3B00?style=for-the-badge&labelColor=050505">
+  <img alt="engine" src="https://img.shields.io/badge/engine-vLLM_0.23-FF3B00?style=for-the-badge&labelColor=050505">
+  <img alt="hardware" src="https://img.shields.io/badge/Jetson_AGX_Thor-sm__110a-76B900?style=for-the-badge&logo=nvidia&logoColor=white&labelColor=050505">
+</p>
 
-**NVFP4** quantization of [`{base}`](https://hf.co/{base}), produced with NVIDIA TensorRT
-Model Optimizer for the **NVIDIA Jetson AGX Thor** (Blackwell `sm_110a`) using
-[**anima-thor-ui**](https://github.com/RobotFlow-Labs/anima-vllm-thor).
+# {short} — NVFP4
 
-Runs on the [`anima-vllm:thor-latest`](https://github.com/RobotFlow-Labs/anima-vllm-thor) engine
-(vLLM 0.23 · PyTorch 2.11 · CUDA 13).
+**4-bit (NVFP4) quantization of [`{base}`](https://huggingface.co/{base})**, produced with
+**NVIDIA TensorRT Model Optimizer** and packaged for fast inference on the
+**NVIDIA Jetson AGX Thor** (Blackwell, compute capability `sm_110a`).
 
-## Serve
+Built with [**anima-thor-ui**](https://github.com/RobotFlow-Labs/anima-vllm-thor) — RobotFlow Labs'
+open control plane + latest-vLLM image for the Jetson Thor.
+
+## ✨ Why this build
+- **~3.5× smaller** than the bf16 source — fits comfortably in the Thor's 128 GB unified memory with
+  room for a large KV cache.
+- **Memory-bandwidth-optimal decode** — NVFP4 moves ~0.55 bytes/param, roughly halving the bytes read
+  per token versus fp8, which is what sets decode speed on bandwidth-bound edge GPUs.
+- **Drop-in OpenAI / Anthropic serving** via the `anima-vllm:thor-latest` engine (vLLM 0.23 · PyTorch
+  2.11 · CUDA 13), or any vLLM build with NVFP4 (compressed-tensors) support.
+
+## 🚀 Usage (vLLM)
 ```bash
-vllm serve {repo_id} --trust-remote-code --attention-backend TRITON_ATTN \\
-  --gpu-memory-utilization 0.7 --kv-cache-dtype fp8 --max-model-len 32768
+vllm serve {repo_id} \\
+  --trust-remote-code --attention-backend TRITON_ATTN \\
+  --gpu-memory-utilization 0.70 --kv-cache-dtype fp8 --max-model-len 32768
 ```
+```python
+from openai import OpenAI
+client = OpenAI(base_url="http://localhost:8000/v1", api_key="x")
+r = client.chat.completions.create(
+    model="{repo_id}",
+    messages=[{{"role": "user", "content": "Write a Python function to check if a string is a palindrome."}}],
+)
+print(r.choices[0].message.content)
+```
+On a Jetson use `--runtime nvidia` (not `--gpus all`). The first request JIT-compiles attention (~30–60 s), then it's cached.
 
-Quantized by RobotFlow Labs for the ANIMA edge-AI stack.
+## 🔬 Quantization details
+| | |
+|---|---|
+| **Method** | NVFP4 post-training quantization (NVIDIA TensorRT Model Optimizer, `NVFP4_DEFAULT_CFG`) |
+| **Format** | `compressed-tensors` (NVFP4 weights + per-group scales; fp8 KV-cache quant) |
+| **Calibration** | 64 diverse prompts (reasoning, code, translation, general) |
+| **Produced on** | NVIDIA Jetson AGX Thor · `sm_110a` · CUDA 13 · PyTorch 2.11 · via anima-thor-ui |
+| **Base model** | [`{base}`](https://huggingface.co/{base}) |
+
+## 🎯 Intended use & limitations
+General-purpose inference on NVFP4-capable hardware (Blackwell and newer). Quality closely tracks the
+base model; as with any 4-bit PTQ, expect small deviations on the most numerically sensitive tasks.
+Inherits the base model's license, capabilities, biases, and intended-use terms — review the
+[base model card](https://huggingface.co/{base}). This is an **independent community quantization**,
+not affiliated with or endorsed by the base-model authors or NVIDIA.
+
+## 📄 License & attribution
+Released under **apache-2.0** (subject to the base model's license). *NVIDIA, CUDA, Jetson, and
+Blackwell are trademarks of NVIDIA Corporation.* Quantized by
+**[RobotFlow Labs / AIFLOW LABS](https://github.com/RobotFlow-Labs)** for the **ANIMA** edge-AI stack
+using [anima-thor-ui](https://github.com/RobotFlow-Labs/anima-vllm-thor). ⭐ the repo if this is useful.
 """
 
 

@@ -25,12 +25,25 @@ SMART/SLOW    nvidia/NVIDIA-Nemotron-3-Super-120B-A12B    66.0GB  est 18tps  nem
 TOO BIG       MiniMax-M3 (427B)                          235GB   —          (won't fit)
 ```
 
-## Run on Thor
+## Run on Thor (Docker — auto-restarts on reboot, recommended)
 ```bash
 git clone https://github.com/RobotFlow-Labs/anima-vllm-thor && cd anima-vllm-thor/ui
-cp .env.example .env        # set HF_TOKEN + HF_HOME
-./run.sh                    # http://<thor>:7000   ·   Swagger at /7000/docs
+# secrets come from ~/thor-serve/.env (HF_TOKEN, HF_HOME); edit if needed
+./run_docker.sh             # builds + runs container with --restart unless-stopped
+                            # http://<thor>:7000   ·   Swagger at /docs
 ```
+The container ships the Docker CLI and mounts the host docker socket + HF cache (at identical
+in/out paths) so it can drive the **sibling** vLLM + quantize containers. `--restart unless-stopped`
++ an enabled `docker.service` means it comes back automatically after a power-down.
+
+To redeploy after editing code: `rsync` the `ui/` dir to the host path, then `docker restart anima-thor-ui`.
+
+<details><summary>Bare-metal alternative (tmux, no auto-restart)</summary>
+
+```bash
+cp .env.example .env && ./run.sh   # uv venv + python -m anima_thor_ui.main
+```
+</details>
 Needs the `anima-vllm:thor-latest` image present and direct access to the host docker daemon
 (it manages the engine container the same way `serve.sh` does).
 

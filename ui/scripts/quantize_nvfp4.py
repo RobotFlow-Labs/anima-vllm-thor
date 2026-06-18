@@ -69,6 +69,12 @@ def main() -> int:
     )
     model.eval()
 
+    # Some models (custom/auto_map configs) leave config.architectures = None, which crashes
+    # ModelOpt's export (is_multimodal_model iterates architectures). Backfill from the class.
+    if not getattr(model.config, "architectures", None):
+        model.config.architectures = [type(model).__name__]
+        print(f"[INFO] backfilled config.architectures = {model.config.architectures}", flush=True)
+
     prompts = (CALIB_PROMPTS * ((args.calib // len(CALIB_PROMPTS)) + 1))[: args.calib]
 
     def forward_loop(m):
