@@ -221,8 +221,15 @@ def status() -> dict:
         "auto_util": auto_util(),
     }
     if running:
-        # quick "is it actually ready" probe is done by the proxy /v1/models; here we
-        # just surface that the container exists. Readiness is reported by the UI poll.
-        tail = logs(12)
-        out["ready"] = "Application startup complete" in tail or "Starting vLLM API server" in tail
+        # robust readiness: actually probe the OpenAI endpoint (more reliable than log-grep)
+        out["ready"] = _engine_ready()
     return out
+
+
+def _engine_ready() -> bool:
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"{settings.vllm_base_url}/v1/models", timeout=2) as r:
+            return r.status == 200
+    except Exception:  # noqa: BLE001 — not up yet
+        return False
