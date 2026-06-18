@@ -76,8 +76,15 @@ def _model_id(ollama_name: str) -> str:
     return served or (ollama_name or "").split(":")[0]
 
 
+def _engine_down_error(fmt: str = "ollama"):
+    msg = "engine offline — start a model in the ANIMA Thor UI"
+    return JSONResponse(status_code=503, content={"error": msg})
+
+
 @router.post("/api/chat", summary="Ollama chat → vLLM (OpenAI translated)")
 async def chat(request: Request):
+    if not vllm_manager.is_running():
+        return _engine_down_error()
     body = await request.json()
     model = _model_id(body.get("model", ""))
     stream = body.get("stream", True)            # Ollama defaults to streaming
@@ -129,6 +136,8 @@ async def _chat_stream(oai: dict, model: str):
 
 @router.post("/api/generate", summary="Ollama generate → vLLM")
 async def generate(request: Request):
+    if not vllm_manager.is_running():
+        return _engine_down_error()
     body = await request.json()
     model = _model_id(body.get("model", ""))
     stream = body.get("stream", True)

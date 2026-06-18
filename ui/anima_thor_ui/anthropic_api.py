@@ -13,6 +13,7 @@ import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from . import vllm_manager
 from .config import settings
 
 router = APIRouter(tags=["Anthropic API"])
@@ -161,6 +162,9 @@ def _sse(event: str, data: dict) -> str:
 @router.post("/v1/messages", summary="Anthropic Messages (translated to the vLLM engine)")
 async def messages(request: Request):
     """Anthropic-compatible endpoint. Point the Anthropic SDK's base_url here."""
+    if not vllm_manager.is_running():
+        return JSONResponse(status_code=503, content={"type": "error", "error": {
+            "type": "overloaded_error", "message": "engine offline — start a model in the ANIMA Thor UI"}})
     body = await request.json()
     model = body.get("model", "default")
     oai_req = _to_openai(body)
