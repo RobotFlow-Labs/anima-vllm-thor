@@ -238,9 +238,21 @@ def autoserve_if_idle() -> None:
         if not model:
             return
         time.sleep(8)  # let the box settle after a boot before profiling memory
-        serve(ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
-                          max_model_len=last.get("max_model_len", 32768),
-                          served_name=last.get("served_name", ""), gpu_memory_utilization="auto"))
+        cfg = lambda: ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
+                                  max_model_len=last.get("max_model_len", 32768),
+                                  served_name=last.get("served_name", ""), gpu_memory_utilization="auto")
+        # retry — a fresh boot's leak-reclaim climb can still race the first profiling attempt
+        for attempt in range(3):
+            if is_running() and _engine_ready():
+                return
+            try:
+                serve(cfg())
+            except Exception:  # noqa: BLE001
+                pass
+            for _ in range(20):   # wait up to ~5 min for this attempt to come ready
+                if _engine_ready():
+                    return
+                time.sleep(15)
     except Exception:  # noqa: BLE001 — never crash startup
         pass
 
