@@ -93,7 +93,9 @@ def main() -> int:
     import os
     os.makedirs(args.out, exist_ok=True)
     export_hf_checkpoint(model, export_dir=args.out)
-    tok.save_pretrained(args.out)
+    # NOTE: do NOT tok.save_pretrained here — this worker may run an upgraded
+    # transformers (v5) that writes a tokenizer config the serving engine (v4)
+    # can't parse. The orchestrator copies the ORIGINAL tokenizer files instead.
 
     log_stage("done", "export complete")
     return 0

@@ -156,10 +156,39 @@ def _run(repo_id: str, calib_samples: int):
             _set(status="error", msg="Export finished but no checkpoint was written — see log.")
             return
 
+        # copy the ORIGINAL tokenizer files over anything the worker wrote, so the
+        # serving engine (transformers v4) can load them (v5-resaved tokenizers break it)
+        _copy_source_tokenizer(repo_id, host_out)
+
         _set(stage="done", status="done", out_path=str(host_out),
              msg=f"✓ {out_name} ready — it's now in Local Models.")
     except Exception as e:  # noqa: BLE001
         _set(status="error", msg=str(e)[:300])
+
+
+_TOKENIZER_FILES = (
+    "tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt",
+    "special_tokens_map.json", "added_tokens.json", "generation_config.json",
+    "tokenizer.model", "chat_template.jinja",
+)
+
+
+def _copy_source_tokenizer(repo_id: str, out_dir):
+    """Copy the source model's original tokenizer files into the export dir,
+    following blob symlinks. Preserves the v4-compatible tokenizer format."""
+    base = settings.hub_dir / ("models--" + repo_id.replace("/", "--")) / "snapshots"
+    snaps = sorted(base.glob("*")) if base.exists() else []
+    if not snaps:
+        return
+    snap = snaps[-1]
+    import shutil as _sh
+    for f in _TOKENIZER_FILES:
+        src = snap / f
+        if src.exists():
+            try:
+                _sh.copy2(src.resolve(), out_dir / f)
+            except OSError:
+                pass
 
 
 def _run_worker(repo_id: str, cont_out: str, calib_samples: int) -> int:
