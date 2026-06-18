@@ -48,10 +48,11 @@ api = APIRouter(prefix="/api")
 class ServeRequest(BaseModel):
     model: str
     max_model_len: int = 32768
-    gpu_memory_utilization: float = 0.70
+    gpu_memory_utilization: str = "auto"          # "auto" fits free memory, or "0.6" etc.
     kv_cache_dtype: str = "fp8"
     attention_backend: str = "TRITON_ATTN"
     spec_decode: str = "off"
+    profile: str = "latency"                       # latency | throughput
     served_name: str = ""
 
 
@@ -75,7 +76,7 @@ def api_serve(req: ServeRequest):
             max_model_len=req.max_model_len,
             gpu_memory_utilization=req.gpu_memory_utilization,
             kv_cache_dtype=req.kv_cache_dtype, attention_backend=req.attention_backend,
-            spec_decode=req.spec_decode,
+            spec_decode=req.spec_decode, profile=req.profile,
         )
         return vllm_manager.serve(cfg)
     except Exception as e:  # noqa: BLE001

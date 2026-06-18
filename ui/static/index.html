@@ -20,7 +20,7 @@
 </header>
 
 <div class="rail">
-  <div class="tile"><div class="v" id="t-tps">—</div><div class="l">tok/s · single</div></div>
+  <div class="tile"><div class="v" id="t-tps">—</div><div class="l">free RAM (GB)</div></div>
   <div class="tile"><div class="v dim" id="t-model">no engine</div><div class="l">active model</div></div>
   <div class="tile"><div class="v dim" id="t-ctx">—</div><div class="l">max context</div></div>
   <div class="tile"><div class="v green" id="t-uptime">0s</div><div class="l">uptime</div></div>
@@ -45,7 +45,8 @@
         <div><label>Model (local)</label><select id="cfg-model"></select></div>
         <div><label>Served name (OpenAI id)</label><input id="cfg-name" placeholder="auto from model"></div>
         <div><label>Max context length</label><input id="cfg-ctx" type="number" value="32768"></div>
-        <div><label>GPU memory utilization</label><input id="cfg-util" type="number" step="0.01" min="0.3" max="0.95" value="0.70"></div>
+        <div><label>Profile</label><select id="cfg-profile"><option value="latency">latency — fastest single user (~79 tok/s)</option><option value="throughput">throughput — prefix-cache + batch (747 agg)</option></select></div>
+        <div><label>GPU memory util (auto = fit free RAM)</label><input id="cfg-util" value="auto" placeholder="auto"></div>
         <div><label>KV cache dtype</label><select id="cfg-kv"><option>fp8</option><option>auto</option></select></div>
         <div><label>Attention backend</label><select id="cfg-attn"><option>TRITON_ATTN</option><option>FLASHINFER</option><option>FLASH_ATTN</option></select></div>
         <div><label>Speculative decode</label><select id="cfg-spec"><option value="off">off (best general — recommended)</option><option value="ngram">ngram</option><option value="mtp">mtp</option></select></div>

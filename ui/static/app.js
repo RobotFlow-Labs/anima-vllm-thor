@@ -31,6 +31,7 @@ async function poll() {
     $("#t-model").textContent = cfg.model ? cfg.model.split("/").pop() : "no engine";
     $("#t-ctx").textContent = cfg.max_model_len ? (cfg.max_model_len / 1000) + "K" : "—";
     $("#t-uptime").textContent = fmtTime(s.uptime_s || 0);
+    if (s.mem_avail_gb != null) $("#t-tps").textContent = s.mem_avail_gb + "G";
     $("#ep-modelid").textContent = cfg.served_name || (cfg.model ? cfg.model.split("/").pop().toLowerCase() : "—");
   } catch (e) { /* UI server down */ }
 }
@@ -56,9 +57,10 @@ $("#btn-serve").onclick = async () => {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({
         model, served_name: $("#cfg-name").value,
-        max_model_len: +$("#cfg-ctx").value, gpu_memory_utilization: +$("#cfg-util").value,
+        max_model_len: +$("#cfg-ctx").value,
+        gpu_memory_utilization: ($("#cfg-util").value || "auto").trim(),
         kv_cache_dtype: $("#cfg-kv").value, attention_backend: $("#cfg-attn").value,
-        spec_decode: $("#cfg-spec").value,
+        spec_decode: $("#cfg-spec").value, profile: $("#cfg-profile").value,
       }),
     });
     toast(r.started ? "Engine launching — watch the status dot." : ("Error: " + (r.detail || JSON.stringify(r))));
