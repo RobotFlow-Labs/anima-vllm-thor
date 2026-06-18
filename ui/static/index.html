@@ -39,6 +39,8 @@
   <section class="panel active" id="panel-engine">
     <div class="card">
       <h2>Engine Configuration <span class="badge">anima-vllm:thor-latest</span></h2>
+      <label>Curated presets (proven on Thor — one click to fill the config)</label>
+      <div class="list" id="preset-row" style="flex-direction:row;flex-wrap:wrap;margin-bottom:18px"></div>
       <div class="grid2">
         <div><label>Model (local)</label><select id="cfg-model"></select></div>
         <div><label>Served name (OpenAI id)</label><input id="cfg-name" placeholder="auto from model"></div>
