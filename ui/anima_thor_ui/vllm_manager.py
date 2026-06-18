@@ -70,16 +70,22 @@ def mem_gb() -> tuple[float, float]:
     return round(avail, 1), round(total, 1)
 
 
-def wait_mem_stable(window: float = 2.0, max_wait: int = 90) -> float:
-    """Wait until free memory stops changing (Thor's leak reclaims slowly, and vLLM's
-    init memory-profiling ERRORS if free memory shifts mid-profile). Returns final avail."""
+def wait_mem_stable(window: float = 1.0, need: int = 3, max_wait: int = 240) -> float:
+    """Wait until free memory is TRULY flat — Thor's leaked GPU memory reclaims as a slow
+    continuous climb (26→118 GB over minutes), and vLLM's ~30 s init memory-profiling ERRORS
+    if free memory shifts mid-profile. Require `need` consecutive samples within `window` GiB."""
     last = -1.0
-    for _ in range(int(max_wait / 5)):
+    stable = 0
+    for _ in range(int(max_wait / 8)):
         avail, _t = mem_gb()
         if last >= 0 and abs(avail - last) <= window:
-            return avail
+            stable += 1
+            if stable >= need:
+                return avail
+        else:
+            stable = 0
         last = avail
-        time.sleep(5)
+        time.sleep(8)
     return last
 
 
