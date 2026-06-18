@@ -61,6 +61,12 @@ Needs the `anima-vllm:thor-latest` image present and direct access to the host d
 | Anthropic SDK (`base_url`) | `http://<thor>:7000/v1/messages` |
 | Swagger / OpenAPI | `http://<thor>:7000/docs` |
 
+## Verify
+```bash
+./scripts/smoke.sh                 # health + OpenAI + Anthropic + Ollama, all coherent
+python -m pytest tests/ -q         # 16 unit tests (no engine/GPU needed)
+```
+
 ## Stack
 FastAPI + httpx · vanilla HTML/CSS/JS (no build step, offline-friendly) · drives the engine via the `docker` CLI.
 ANIMA design system: Industrial Orange `#FF3B00`, void black, Oswald / JetBrains Mono / Chakra Petch.
