@@ -261,11 +261,17 @@ async def _proxy(path: str, request: Request):
     stream = b'"stream":true' in body.replace(b" ", b"")
     if stream:
         async def gen():
-            async with httpx.AsyncClient(timeout=None) as c:
-                async with c.stream("POST", f"{settings.vllm_base_url}{path}",
-                                    content=body, headers=headers) as r:
-                    async for chunk in r.aiter_raw():
-                        yield chunk
+            # generous read timeout (long generations) but not infinite; surface drops as SSE error
+            timeout = httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0)
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as c:
+                    async with c.stream("POST", f"{settings.vllm_base_url}{path}",
+                                        content=body, headers=headers) as r:
+                        async for chunk in r.aiter_raw():
+                            yield chunk
+            except (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError) as e:
+                yield (f'data: {{"error":{{"message":"engine stream error: {type(e).__name__}"}}}}\n\n'
+                       'data: [DONE]\n\n').encode()
         return StreamingResponse(gen(), media_type="text/event-stream")
     async with httpx.AsyncClient(timeout=300) as c:
         try:
