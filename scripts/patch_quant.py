@@ -1,4 +1,3 @@
-import sys
 p = "/opt/venv/lib/python3.12/site-packages/vllm/model_executor/layers/quantization/__init__.py"
 s = open(p).read()
 targets = {

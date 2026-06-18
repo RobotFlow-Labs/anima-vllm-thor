@@ -15,6 +15,10 @@ dependencies = [
 [project.scripts]
 anima-thor-ui = "anima_thor_ui.main:run"
 
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

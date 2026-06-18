@@ -238,15 +238,16 @@ def autoserve_if_idle() -> None:
         if not model:
             return
         time.sleep(8)  # let the box settle after a boot before profiling memory
-        cfg = lambda: ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
-                                  max_model_len=last.get("max_model_len", 32768),
-                                  served_name=last.get("served_name", ""), gpu_memory_utilization="auto")
+        def _cfg() -> ServeConfig:
+            return ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
+                               max_model_len=last.get("max_model_len", 32768),
+                               served_name=last.get("served_name", ""), gpu_memory_utilization="auto")
         # retry — a fresh boot's leak-reclaim climb can still race the first profiling attempt
-        for attempt in range(3):
+        for _attempt in range(3):
             if is_running() and _engine_ready():
                 return
             try:
-                serve(cfg())
+                serve(_cfg())
             except Exception:  # noqa: BLE001
                 pass
             for _ in range(20):   # wait up to ~5 min for this attempt to come ready
@@ -262,6 +263,29 @@ def logs(tail: int = 80) -> str:
     return (r.stdout or "") + (r.stderr or "")
 
 
+def _recover_config() -> dict | None:
+    """After a UI restart the in-memory config is lost but the engine keeps running.
+    Recover the served-model name from the engine + the persisted last-serve state."""
+    import urllib.request
+    name = None
+    try:
+        with urllib.request.urlopen(f"{settings.vllm_base_url}/v1/models", timeout=2) as r:
+            data = json.loads(r.read())
+            name = (data.get("data") or [{}])[0].get("id")
+    except Exception:  # noqa: BLE001
+        pass
+    cfg = {}
+    if _STATE.exists():
+        try:
+            cfg = json.loads(_STATE.read_text())
+        except (OSError, ValueError):
+            cfg = {}
+    if name:
+        cfg["served_name"] = cfg.get("served_name") or name
+        cfg.setdefault("model", name)
+    return cfg or None
+
+
 def status() -> dict:
     running = is_running()
     avail, total = mem_gb()
@@ -270,7 +294,7 @@ def status() -> dict:
         "image": settings.VLLM_IMAGE,
         "container": settings.VLLM_CONTAINER,
         "base_url": settings.vllm_base_url,
-        "config": _current,
+        "config": _current or (_recover_config() if running else None),
         "uptime_s": int(time.time() - _started_at) if (_started_at and running) else 0,
         "mem_avail_gb": avail,
         "mem_total_gb": total,

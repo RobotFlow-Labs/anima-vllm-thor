@@ -10,6 +10,8 @@ No auth by design (single-user edge box). HF token is read from the environment.
 """
 from __future__ import annotations
 
+import logging
+import time as _time
 from pathlib import Path
 
 import httpx
@@ -41,8 +43,6 @@ app = FastAPI(
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 
-import logging
-import time as _time
 _log = logging.getLogger("anima")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s anima %(message)s")
 

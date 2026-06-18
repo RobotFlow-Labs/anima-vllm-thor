@@ -1,0 +1,8 @@
+# Repo-root ruff config. The main package (ui/anima_thor_ui) is held strict via
+# ui/pyproject.toml; these are terse CLI/build utilities where compact one-liners are fine.
+line-length = 110
+target-version = "py310"
+
+[lint.per-file-ignores]
+"scripts/*.py" = ["E701", "E702"]      # build/bench utilities: compact statements OK
+"ui/scripts/*.py" = ["E701", "E702"]

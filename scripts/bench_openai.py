@@ -10,7 +10,13 @@ Usage:
   uv run bench_openai.py --base-url http://localhost:8000/v1 --model <id> \
       --engine vllm --quant nvfp4 --concurrency 8 --num-prompts 32 --max-tokens 256
 """
-import argparse, asyncio, time, json, statistics, os, datetime
+import argparse
+import asyncio
+import time
+import json
+import statistics
+import os
+import datetime
 import httpx
 
 PROMPT = ("You are a helpful assistant. Write a detailed, technical explanation of how "
