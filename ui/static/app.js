@@ -28,7 +28,9 @@ async function poll() {
     $("#engine-label").textContent = running ? (s.ready ? "ONLINE" : "LOADING") : "OFFLINE";
     const cfg = s.config || {};
     $("#engine-model").textContent = cfg.model ? cfg.model.split("/").pop() : "—";
-    $("#t-model").textContent = cfg.model ? cfg.model.split("/").pop() : "no engine";
+    $("#t-model").textContent = cfg.model
+      ? cfg.model.split("/").pop() + (cfg.profile ? ` · ${cfg.profile}` : "")
+      : "no engine";
     $("#t-ctx").textContent = cfg.max_model_len ? (cfg.max_model_len / 1000) + "K" : "—";
     $("#t-uptime").textContent = fmtTime(s.uptime_s || 0);
     // live tok/s when generating, else free RAM
