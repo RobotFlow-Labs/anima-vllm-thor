@@ -41,6 +41,28 @@ app = FastAPI(
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 
+import logging
+import time as _time
+_log = logging.getLogger("anima")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s anima %(message)s")
+
+
+@app.middleware("http")
+async def _timing(request, call_next):
+    t0 = _time.time()
+    resp = await call_next(request)
+    dt = (_time.time() - t0) * 1000
+    if not request.url.path.startswith(("/style", "/app.js", "/favicon")):
+        _log.info(f"{request.method} {request.url.path} -> {resp.status_code} {dt:.0f}ms")
+    return resp
+
+
+@app.get("/healthz", tags=["Engine"], summary="Liveness/health probe (for monitoring)")
+def healthz():
+    s = vllm_manager.status()
+    return {"status": "ok", "engine_running": s.get("running"), "engine_ready": s.get("ready"),
+            "mem_avail_gb": s.get("mem_avail_gb"), "model": (s.get("config") or {}).get("served_name")}
+
 
 # ============================================================ control plane (/api)
 api = APIRouter(prefix="/api")
