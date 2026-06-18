@@ -61,6 +61,36 @@ def api_status():
     return vllm_manager.status()
 
 
+_tel = {"tokens": 0.0, "t": 0.0}
+
+
+@api.get("/telemetry", tags=["Engine"], summary="Live throughput (from vLLM Prometheus metrics)")
+async def api_telemetry():
+    """Live tok/s (sampled delta of generation_tokens_total) + in-flight requests."""
+    import re
+    import time as _t
+    try:
+        async with httpx.AsyncClient(timeout=4) as c:
+            txt = (await c.get(f"{settings.vllm_base_url}/metrics")).text
+    except Exception:  # noqa: BLE001
+        return {"tok_s": 0, "running": 0, "waiting": 0}
+
+    def g(name: str) -> float:
+        m = re.search(rf"^{re.escape(name)}\{{[^}}]*\}}\s+([0-9.eE+]+)", txt, re.M)
+        return float(m.group(1)) if m else 0.0
+
+    tokens = g("vllm:generation_tokens_total")
+    now = _t.time()
+    tps = 0.0
+    if _tel["t"] and now > _tel["t"]:
+        dt, dtok = now - _tel["t"], tokens - _tel["tokens"]
+        if dt > 0 and dtok >= 0:
+            tps = round(dtok / dt, 1)
+    _tel["tokens"], _tel["t"] = tokens, now
+    return {"tok_s": tps, "running": int(g("vllm:num_requests_running")),
+            "waiting": int(g("vllm:num_requests_waiting")), "gen_total": int(tokens)}
+
+
 @api.get("/logs", tags=["Engine"], summary="Tail engine logs")
 def api_logs(tail: int = 80):
     if not vllm_manager.is_running():
