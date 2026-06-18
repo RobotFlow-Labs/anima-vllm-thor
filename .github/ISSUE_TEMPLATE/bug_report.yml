@@ -1,0 +1,34 @@
+name: Bug report
+description: Something doesn't work on your Jetson/edge box
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got. Paste errors.
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [engine image / build, control UI, quantize, an API (OpenAI/Anthropic/Ollama), serving/memory, other]
+    validations: { required: true }
+  - type: input
+    id: hw
+    attributes:
+      label: Hardware / JetPack
+      placeholder: "Jetson AGX Thor · JetPack 7 / L4T r38.4 · sm_110a"
+  - type: textarea
+    id: env
+    attributes:
+      label: Versions + smoke output
+      description: "`docker images | grep anima-vllm`, the model, and `ui/scripts/smoke.sh` output if relevant."
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checked
+      options:
+        - { label: "I read docs/MODELS.md (arch support + the one-model-per-boot / memory-leak reality)" }
+        - { label: "Free RAM was sufficient for the model (model-aware guard didn't reject it)" }
