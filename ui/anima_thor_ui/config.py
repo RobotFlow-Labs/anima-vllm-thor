@@ -40,6 +40,11 @@ class Settings:
     # HF account to publish our quantized models under
     HF_USER: str = os.environ.get("ANIMA_HF_USER", "ilessio-aiflowlab")
 
+    # self-healing: on UI startup, auto-serve this model if nothing is running
+    # (combined with the container's restart policy → full recovery after a reboot/power-loss)
+    AUTOSERVE_MODEL: str = os.environ.get("ANIMA_AUTOSERVE_MODEL", "")
+    AUTOSERVE_PROFILE: str = os.environ.get("ANIMA_AUTOSERVE_PROFILE", "latency")
+
     @property
     def vllm_base_url(self) -> str:
         return f"http://{self.VLLM_HOST}:{self.VLLM_PORT}"

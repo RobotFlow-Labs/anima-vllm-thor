@@ -157,6 +157,34 @@ def serve(cfg: ServeConfig) -> dict:
     return {"started": True, "container": settings.VLLM_CONTAINER, "config": _current, "auto_util": util}
 
 
+def reboot_host() -> dict:
+    """Reboot the Thor host to reclaim leaked GPU memory. The UI container's
+    restart policy + autoserve bring everything back automatically. Uses a
+    privileged sibling container + nsenter into the host PID namespace (we only
+    have the docker socket, not host init)."""
+    if not docker_available():
+        raise RuntimeError("docker CLI not available")
+    # run in the already-present engine image (has util-linux/nsenter) — no pull needed
+    r = _docker("run", "--rm", "--privileged", "--pid=host", settings.VLLM_IMAGE,
+                "nsenter", "-t", "1", "-m", "-u", "-i", "-n", "-p", "--", "reboot",
+                timeout=30)
+    return {"rebooting": True, "detail": (r.stderr or r.stdout or "").strip()[:200]}
+
+
+def autoserve_if_idle() -> None:
+    """Called on UI startup — serve the configured model if nothing is running yet."""
+    if not settings.AUTOSERVE_MODEL:
+        return
+    try:
+        if is_running():
+            return
+        time.sleep(8)  # let the box settle after a boot before profiling memory
+        serve(ServeConfig(model=settings.AUTOSERVE_MODEL, profile=settings.AUTOSERVE_PROFILE,
+                          gpu_memory_utilization="auto"))
+    except Exception:  # noqa: BLE001 — never crash startup
+        pass
+
+
 def logs(tail: int = 80) -> str:
     r = _docker("logs", "--tail", str(tail), settings.VLLM_CONTAINER, timeout=30)
     return (r.stdout or "") + (r.stderr or "")

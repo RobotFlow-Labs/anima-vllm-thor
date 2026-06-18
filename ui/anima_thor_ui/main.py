@@ -118,6 +118,21 @@ def api_stop():
     return vllm_manager.stop()
 
 
+@api.post("/reboot", tags=["Engine"], summary="Reboot Thor to reclaim leaked GPU memory (self-heals)")
+def api_reboot():
+    """Reboots the host. The UI auto-restarts and (if configured) auto-serves — full recovery."""
+    try:
+        return vllm_manager.reboot_host()
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, str(e))
+
+
+@app.on_event("startup")
+def _autoserve():
+    import threading
+    threading.Thread(target=vllm_manager.autoserve_if_idle, daemon=True).start()
+
+
 @api.get("/models/local", tags=["Models"], summary="List downloaded models")
 def api_models_local():
     cur = (vllm_manager.status().get("config") or {}).get("model")

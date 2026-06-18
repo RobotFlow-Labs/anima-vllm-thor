@@ -76,6 +76,11 @@ $("#btn-serve").onclick = async () => {
   $("#btn-serve").disabled = false;
 };
 $("#btn-stop").onclick = async () => { await api("/api/stop", { method: "POST" }); toast("Engine stopped."); };
+$("#btn-reboot").onclick = async () => {
+  if (!confirm("Reboot Thor to reclaim GPU memory?\n\nThe UI auto-restarts and auto-serves — recovery is hands-free (~90 s).")) return;
+  toast("Rebooting Thor… the UI will be back in ~90 s and auto-serve the default model.");
+  try { await api("/api/reboot", { method: "POST" }); } catch (e) {}
+};
 $("#btn-logs").onclick = async () => {
   const out = $("#logs-out"); out.style.display = "block";
   const d = await api("/api/logs?tail=120"); out.textContent = d.logs || "(empty)"; out.scrollTop = out.scrollHeight;
