@@ -47,7 +47,7 @@ def _dir_size_gb(path) -> float:
 
 
 def list_local() -> list[dict]:
-    out = []
+    out: list[dict] = []
     hub = settings.hub_dir
     if not hub.exists():
         return out

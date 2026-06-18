@@ -225,7 +225,7 @@ def _run_worker(repo_id: str, cont_out: str, calib_samples: int) -> int:
                 _job["log"] = "".join(buf)[-6000:]
         m = re.search(r"\[STAGE\]\s*(\w+)\s*(.*)", line)
         if m and m.group(1) in _STAGE_PCT:
-            _set(stage=m.group(1), msg=m.group(2).strip() or _job.get("msg", ""))
+            _set(stage=m.group(1), msg=m.group(2).strip() or (_job or {}).get("msg", ""))
     proc.wait()
     return proc.returncode
 
