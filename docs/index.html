@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ANIMA vLLM Thor — latest vLLM on NVIDIA Jetson AGX Thor</title>
+<meta name="description" content="Run the latest vLLM on the NVIDIA Jetson AGX Thor (sm_110a). A 35B coder at ~80 tok/s single / 747 aggregate on a 60W offline box. OpenAI + Anthropic + Ollama APIs, on-device NVFP4 quantization.">
+<link rel="icon" type="image/svg+xml" href="https://raw.githubusercontent.com/RobotFlow-Labs/anima-vllm-thor/main/ui/static/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&family=Chakra+Petch:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--ac:#FF3B00;--bg:#050505;--pan:#141414;--bd:#333;--tx:#fff;--dim:#999;--grn:#00FF88;--nv:#76B900;
+    --fd:'Oswald',sans-serif;--fm:'JetBrains Mono',monospace;--ft:'Chakra Petch',sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--fm);background:var(--bg);color:var(--tx);line-height:1.6;
+    background-image:linear-gradient(rgba(255,59,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,59,0,.03) 1px,transparent 1px);background-size:44px 44px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+  header{border-bottom:1px solid var(--bd);background:var(--pan)}
+  .glow{height:2px;background:linear-gradient(90deg,transparent,var(--ac),transparent)}
+  .nav{display:flex;align-items:center;gap:16px;padding:16px 24px;max-width:1040px;margin:0 auto}
+  .brand{font-family:var(--fd);font-weight:900;font-size:22px;text-transform:uppercase}.brand span{color:var(--ac)}
+  .nav a{margin-left:auto;color:var(--ac);text-decoration:none;font-size:13px;letter-spacing:1px}
+  .hero{text-align:center;padding:54px 0 30px}
+  .tag{font-size:11px;letter-spacing:3px;color:var(--ac);text-transform:uppercase}
+  h1{font-family:var(--fd);font-weight:900;font-size:46px;text-transform:uppercase;line-height:1.02;margin:8px 0}
+  h1 .ac{color:var(--ac)}
+  .lede{font-family:var(--ft);font-size:17px;color:var(--dim);max-width:760px;margin:0 auto 22px}
+  .cta a{display:inline-block;margin:6px;padding:11px 20px;border:1px solid var(--ac);color:var(--ac);text-decoration:none;
+    font-family:var(--ft);text-transform:uppercase;letter-spacing:1px;font-size:13px}
+  .cta a.solid{background:var(--ac);color:#000}
+  img.shot{width:100%;border:1px solid var(--bd);margin:24px 0}
+  h2{font-family:var(--fd);font-weight:700;font-size:24px;text-transform:uppercase;margin:40px 0 14px;letter-spacing:1px}
+  h2 .ac{color:var(--ac)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}
+  th,td{border:1px solid var(--bd);padding:9px 12px;text-align:left}th{color:var(--dim);font-weight:500;font-size:12px;text-transform:uppercase}
+  td b{color:var(--ac)} .grn{color:var(--grn)} .no{color:#ff5a5a}
+  .feat{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
+  .card{border:1px solid var(--bd);background:var(--pan);padding:16px}
+  .card h3{font-family:var(--ft);font-size:15px;color:var(--ac);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .card p{font-size:13px;color:var(--dim)}
+  pre{background:#0c0c0c;border:1px solid var(--bd);padding:14px;overflow:auto;font-size:13px;color:var(--grn);margin:8px 0}
+  .note{font-size:12px;color:var(--dim);margin-top:6px}
+  footer{border-top:1px solid var(--bd);background:var(--pan);text-align:center;padding:24px;font-size:12px;color:var(--dim);margin-top:48px}
+  footer a{color:var(--ac);text-decoration:none}
+  .nv{color:var(--nv)}
+</style></head>
+<body>
+<header><div class="glow"></div>
+  <div class="nav"><div class="brand">ANIMA <span>vLLM THOR</span></div>
+    <a href="https://github.com/RobotFlow-Labs/anima-vllm-thor">GitHub ↗</a></div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="tag">EDGE INFERENCE · NVIDIA JETSON AGX THOR · sm_110a</div>
+    <h1>The <span class="ac">latest vLLM</span><br>on a backpack GPU</h1>
+    <p class="lede">A 35-billion-parameter coding model at <b>~80 tok/s</b> single-user and <b>747 tok/s</b>
+      aggregate — on one 128 GB box that runs <b>fully offline at ~60 W</b>. Loads NVFP4 MoE models
+      NVIDIA's own Jetson image can't. OpenAI + Anthropic + Ollama APIs. Quantize any model on-device.</p>
+    <div class="cta">
+      <a class="solid" href="https://hub.docker.com/r/ilessio/anima-vllm-thor">🐳 docker pull</a>
+      <a href="https://github.com/RobotFlow-Labs/anima-vllm-thor">📦 Repo + recipe</a>
+      <a href="https://github.com/RobotFlow-Labs/anima-vllm-thor/blob/main/docs/PERFORMANCE.md">📊 Benchmarks</a>
+    </div>
+  </section>
+
+  <img class="shot" src="assets/bench_chart.png" alt="747 tok/s aggregate on Jetson Thor">
+
+  <h2><span class="ac">Why</span> it exists</h2>
+  <p style="color:var(--dim)">As of mid-2026 there's no prebuilt latest-vLLM image for the Jetson Thor — NVIDIA's ships vLLM 0.19,
+    which can't even load <code>Qwen3.6-35B-A3B-NVFP4</code>. This is a single reproducible Dockerfile that
+    upgrades the stack to <b>vLLM 0.23 + PyTorch 2.11 + CUDA 13</b>, native for Blackwell <code>sm_110a</code>.</p>
+
+  <table>
+    <tr><th></th><th>NVIDIA's image</th><th>anima-vllm-thor</th></tr>
+    <tr><td>vLLM</td><td>0.19.0</td><td><b>0.23.1</b></td></tr>
+    <tr><td>Load Qwen3.6-35B-A3B-NVFP4</td><td class="no">✕ KeyError</td><td class="grn">✓ 79 / 747 tok/s</td></tr>
+    <tr><td>APIs</td><td>OpenAI</td><td><b>OpenAI + Anthropic + Ollama</b></td></tr>
+    <tr><td>On-device quantize → NVFP4</td><td class="no">—</td><td class="grn">✓ web UI</td></tr>
+    <tr><td>Self-healing (reboot/power-loss)</td><td class="no">—</td><td class="grn">✓ auto-serve</td></tr>
+  </table>
+
+  <h2><span class="ac">Run</span> it</h2>
+  <pre>docker pull ilessio/anima-vllm-thor:thor-sm110-vllm0.23   # linux/arm64, Thor
+
+# control plane (OpenAI + Anthropic + Ollama APIs, quantize UI, self-heal):
+git clone https://github.com/RobotFlow-Labs/anima-vllm-thor && cd anima-vllm-thor/ui
+docker compose up -d --build            # → http://&lt;thor&gt;:7000</pre>
+  <p class="note">Use <code>--runtime nvidia</code> on Jetson. Full 9-gotcha build recipe in the repo Dockerfile.</p>
+
+  <h2><span class="ac">What</span> you get</h2>
+  <div class="feat">
+    <div class="card"><h3>Triple-compatible APIs</h3><p>OpenAI <code>/v1</code> (+ Factory Droid), Anthropic <code>/v1/messages</code>, Ollama <code>/api/chat</code>. Drop-in for Cursor, Open WebUI, n8n, LangChain, the SDKs.</p></div>
+    <div class="card"><h3>Quantize anything → NVFP4</h3><p>Turn any standard bf16 HF model into a Thor-ready NVFP4 build on-device (NVIDIA ModelOpt), then one-click publish to HuggingFace.</p></div>
+    <div class="card"><h3>Self-healing</h3><p>Auto-restarts + auto-serves the last model after a reboot/power-loss. Model-aware memory guard degrades gracefully; one-click reclaim.</p></div>
+    <div class="card"><h3>Honest benchmarks</h3><p>Bandwidth-bound single-stream + continuous-batching aggregate, measured on real hardware. Two profiles: latency (79) / throughput (747).</p></div>
+  </div>
+
+  <h2><span class="ac">Benchmarks</span> (Qwen3.6-35B-A3B-NVFP4, one 60 W Thor)</h2>
+  <table>
+    <tr><th>Concurrency</th><th>per-stream</th><th>aggregate</th><th>TTFT</th></tr>
+    <tr><td>1</td><td>79 tok/s</td><td>—</td><td>0.07 s</td></tr>
+    <tr><td>8</td><td>42</td><td>284</td><td>0.19 s</td></tr>
+    <tr><td>16</td><td>32</td><td>466</td><td>0.32 s</td></tr>
+    <tr><td>48</td><td>17</td><td><b>747</b></td><td>0.75 s</td></tr>
+  </table>
+</div>
+
+<footer>
+  Built by <a href="https://github.com/RobotFlow-Labs">RobotFlow Labs</a> for the ANIMA edge-AI stack ·
+  powered by <a href="https://github.com/vllm-project/vllm">vLLM</a> on <span class="nv">NVIDIA Jetson AGX Thor</span>.<br>
+  NVIDIA, CUDA, Jetson, Blackwell are trademarks of NVIDIA Corporation. Independent community build.
+</footer>
+</body></html>
