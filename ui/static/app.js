@@ -181,6 +181,18 @@ function setEndpoints() {
   $("#ep-openai").textContent = base + "/v1";
   $("#ep-anthropic").textContent = base + "/v1/messages";
   const ep = $("#ep-ollama"); if (ep) ep.textContent = base;
+  const ex = $("#ep-examples");
+  if (ex) ex.textContent =
+`# OpenAI / Factory Droid
+curl ${base}/v1/chat/completions -H 'content-type: application/json' \\
+  -d '{"model":"MODEL","messages":[{"role":"user","content":"hi"}]}'
+
+# Anthropic SDK → base_url = ${base}
+curl ${base}/v1/messages -H 'content-type: application/json' \\
+  -d '{"model":"MODEL","max_tokens":256,"messages":[{"role":"user","content":"hi"}]}'
+
+# Ollama (Open WebUI / n8n) → host = ${base}
+curl ${base}/api/chat -d '{"model":"MODEL","messages":[{"role":"user","content":"hi"}]}'`;
 }
 
 // ---- quantize wizard ----
