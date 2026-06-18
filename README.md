@@ -117,8 +117,11 @@ Verify `sm_110` first (~2 min): run `scripts/verify_sm110.py` inside the image (
 ## 🎛 Control plane — [`ui/`](./ui) (ANIMA Thor UI)
 vLLM has no web UI, so we built one — in the same skin as this repo's hero. It manages **this** engine:
 pick a model + vLLM config and launch it, manage the HF model cache (download / delete), and **discover
-NVFP4 models ranked for Thor** (fits-in-128 GB + estimated tok/s). Exposes OpenAI `/v1` (also Factory-Droid
-compatible) and Anthropic `/v1/messages`, with Swagger at `/docs`. No local chat, no passwords.
+NVFP4 models ranked for Thor** (fits-in-128 GB + estimated tok/s). **Triple-compatible APIs** — OpenAI
+`/v1` (also Factory Droid), Anthropic `/v1/messages`, **Ollama** `/api/chat` — so Cursor, Open WebUI,
+n8n, LangChain and the OpenAI/Anthropic SDKs all work unchanged. Auto-fit GPU util, two perf profiles,
+live tok/s meter, on-device quantize→NVFP4→publish, and a **self-healing** stack (auto-restart +
+auto-serve on boot). Swagger at `/docs`. No local chat, no passwords.
 
 ```bash
 cd ui && cp .env.example .env   # set HF_TOKEN + HF_HOME

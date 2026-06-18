@@ -178,6 +178,7 @@ function setEndpoints() {
   const base = location.origin;
   $("#ep-openai").textContent = base + "/v1";
   $("#ep-anthropic").textContent = base + "/v1/messages";
+  const ep = $("#ep-ollama"); if (ep) ep.textContent = base;
 }
 
 // ---- quantize wizard ----

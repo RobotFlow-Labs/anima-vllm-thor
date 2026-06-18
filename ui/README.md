@@ -10,7 +10,7 @@ No local chat. It does this, well:
 | 📦 **Model manager** | List downloaded models with sizes, delete, serve in one click. Curated **presets** (hero / throughput-747 / your quantized coder / …). |
 | 🔍 **Thor-ready discovery** | Searches HF for NVFP4 models and **ranks them for *this* box** — fits-128 GB + est tok/s. Paste an exact repo → if it isn't NVFP4, a **`→ quantize`** path. Flags `ROCKS / BALANCED / SMART·SLOW / TOO BIG / UNTESTED ARCH`. |
 | 🧪 **Quantize → NVFP4** | Turn any standard bf16 HF model into a Thor-ready NVFP4 build on-device (NVIDIA ModelOpt), then one-click **publish to HF**. |
-| 🔌 **API + Swagger** | OpenAI `/v1` (also **Factory Droid**) + **Anthropic** `/v1/messages` (translated), at `/docs`. |
+| 🔌 **API + Swagger** | **OpenAI** `/v1` (also **Factory Droid**) + **Anthropic** `/v1/messages` + **Ollama** `/api/chat,tags,generate` — all translated to the engine. Drop-in for Cursor, Open WebUI, n8n, LangChain, the Anthropic/OpenAI SDKs. Docs at `/docs`. |
 | ♻️ **Self-healing** | Container **auto-restarts on reboot**; **auto-serves** a default model on boot; **Reboot Thor** button reclaims leaked GPU memory — full hands-free recovery. |
 
 No passwords (single-user edge box). HF token baked via env so downloads are fast and silent.
