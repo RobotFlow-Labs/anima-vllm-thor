@@ -14,9 +14,12 @@
 <p align="center">
   <img alt="Arch" src="https://img.shields.io/badge/arch-arm64_/_SBSA-555?style=flat-square&labelColor=050505">
   <img alt="JetPack" src="https://img.shields.io/badge/JetPack-7_/_L4T_r38.4-555?style=flat-square&labelColor=050505">
-  <img alt="API" src="https://img.shields.io/badge/API-OpenAI_/v1-555?style=flat-square&labelColor=050505">
+  <img alt="API" src="https://img.shields.io/badge/API-OpenAI_·_Anthropic_·_Ollama-555?style=flat-square&labelColor=050505">
   <img alt="License" src="https://img.shields.io/badge/recipe-Apache--2.0-blue?style=flat-square&labelColor=050505">
-  <img alt="Built by" src="https://img.shields.io/badge/built_by-RobotFlow_Labs-FF3B00?style=flat-square&labelColor=050505">
+  <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/RobotFlow-Labs/anima-vllm-thor/ci.yml?style=flat-square&labelColor=050505&label=ci">
+</p>
+<p align="center">
+  <b><a href="docs/PERFORMANCE.md">📊 Benchmarks</a> · <a href="docs/MODELS.md">🧩 Model compatibility</a> · <a href="ui">🎛 Control UI</a> · <a href="https://hub.docker.com/r/ilessio/anima-vllm-thor">🐳 Docker Hub</a></b>
 </p>
 
 ---
