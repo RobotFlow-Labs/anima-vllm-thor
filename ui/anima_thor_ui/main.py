@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from . import hf_models, quantize, vllm_manager
 from .anthropic_api import router as anthropic_router
+from .ollama_api import router as ollama_router
 from .config import settings
 
 app = FastAPI(
@@ -245,6 +246,7 @@ async def v1_comp(request: Request):
 
 app.include_router(oai)
 app.include_router(anthropic_router)
+app.include_router(ollama_router)
 
 
 # ============================================================ static dashboard

@@ -70,6 +70,19 @@ def mem_gb() -> tuple[float, float]:
     return round(avail, 1), round(total, 1)
 
 
+def wait_mem_stable(window: float = 2.0, max_wait: int = 90) -> float:
+    """Wait until free memory stops changing (Thor's leak reclaims slowly, and vLLM's
+    init memory-profiling ERRORS if free memory shifts mid-profile). Returns final avail."""
+    last = -1.0
+    for _ in range(int(max_wait / 5)):
+        avail, _t = mem_gb()
+        if last >= 0 and abs(avail - last) <= window:
+            return avail
+        last = avail
+        time.sleep(5)
+    return last
+
+
 def auto_util(reserve_gb: float = 4.0) -> float:
     """Pick a gpu-memory-utilization that fits current free memory (avoids vLLM's
     'free memory < desired' error). Low floor (0.12) so small models still serve on
@@ -124,7 +137,7 @@ def serve(cfg: ServeConfig) -> dict:
     if not docker_available():
         raise RuntimeError("docker CLI not found on host")
     stop()  # graceful replace
-    time.sleep(3)  # let the prior CUDA context fully release before profiling
+    wait_mem_stable()  # wait out any in-progress leak-reclaim so vLLM profiling doesn't race
 
     # model-size-aware low-memory guard — need room for weights + a little KV/activation.
     # (Thor's GPU reservation + vLLM's leak-on-teardown can strand free RAM; only a reboot
