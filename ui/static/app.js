@@ -233,14 +233,18 @@ async function resumeQuant() {
   if (j && j.status === "running") { $("#q-progress").style.display = "block"; renderQuant(j); startQuantPoll(); }
 }
 
-// ---- curated presets (proven on Thor) ----
+// ---- curated presets (proven on Thor) — util auto-fits free RAM ----
 const PRESETS = [
-  { label: "Qwen3.6-35B-A3B · HERO 79 tok/s", model: "nvidia/Qwen3.6-35B-A3B-NVFP4",
-    name: "qwen36", ctx: 32768, util: 0.60, kv: "fp8", attn: "TRITON_ATTN", spec: "off", tag: "rocks" },
+  { label: "Qwen3.6-35B-A3B · HERO · 79 tok/s", model: "nvidia/Qwen3.6-35B-A3B-NVFP4",
+    name: "qwen36", ctx: 32768, profile: "latency", tag: "rocks" },
+  { label: "Qwen3.6-35B-A3B · THROUGHPUT · 747 agg", model: "nvidia/Qwen3.6-35B-A3B-NVFP4",
+    name: "qwen36-fast", ctx: 32768, profile: "throughput", tag: "rocks" },
+  { label: "Qwen2.5-Coder-14B · ours · NVFP4", model: "/root/.cache/huggingface/anima-nvfp4/Qwen2.5-Coder-14B-Instruct-NVFP4-anima",
+    name: "coder14b", ctx: 32768, profile: "latency", tag: "balanced" },
   { label: "Nemotron-Nano-30B-A3B · 68 tok/s", model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4",
-    name: "nemotron-nano", ctx: 32768, util: 0.60, kv: "fp8", attn: "TRITON_ATTN", spec: "off", tag: "rocks" },
-  { label: "Qwen3-Next-80B-A3B · big brain 34 tok/s", model: "nvidia/Qwen3-Next-80B-A3B-Instruct-NVFP4",
-    name: "qwen3next", ctx: 32768, util: 0.78, kv: "fp8", attn: "TRITON_ATTN", spec: "off", tag: "balanced" },
+    name: "nemotron-nano", ctx: 32768, profile: "latency", tag: "balanced" },
+  { label: "Qwen3-Next-80B-A3B · big brain · 34 tok/s", model: "nvidia/Qwen3-Next-80B-A3B-Instruct-NVFP4",
+    name: "qwen3next", ctx: 32768, profile: "latency", tag: "balanced" },
 ];
 
 async function renderPresets() {
@@ -255,8 +259,9 @@ async function renderPresets() {
     chip.title = have ? "fill config with this preset" : "not downloaded yet — grab it in Discover";
     chip.onclick = () => {
       $("#cfg-model").value = p.model; $("#cfg-name").value = p.name;
-      $("#cfg-ctx").value = p.ctx; $("#cfg-util").value = p.util;
-      $("#cfg-kv").value = p.kv; $("#cfg-attn").value = p.attn; $("#cfg-spec").value = p.spec;
+      $("#cfg-ctx").value = p.ctx; $("#cfg-util").value = "auto";
+      $("#cfg-profile").value = p.profile || "latency";
+      $("#cfg-kv").value = "fp8"; $("#cfg-attn").value = "TRITON_ATTN"; $("#cfg-spec").value = "off";
       toast(have ? `Loaded preset: ${p.label.split(" ·")[0]} — review + Serve.`
                  : `Preset set, but ${p.model} isn't downloaded — get it in Discover first.`);
     };
