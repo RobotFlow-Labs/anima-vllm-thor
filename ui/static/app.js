@@ -282,5 +282,12 @@ async function renderPresets() {
   });
 }
 
+// ---- copy buttons ----
+document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => {
+  const txt = ($("#" + b.dataset.copy).textContent || "").trim();
+  navigator.clipboard?.writeText(txt).then(() => { b.textContent = "✓"; setTimeout(() => b.textContent = "copy", 1200); toast("Copied: " + txt); })
+    .catch(() => toast("Copy: " + txt));
+});
+
 // ---- boot ----
 setEndpoints(); loadModelOptions(); renderPresets(); poll(); setInterval(poll, 3000);

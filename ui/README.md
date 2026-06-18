@@ -2,16 +2,23 @@
 
 **A control plane for the [`anima-vllm:thor-latest`](https://github.com/RobotFlow-Labs/anima-vllm-thor) engine on the NVIDIA Jetson AGX Thor.** vLLM has no web UI — this is ours, in the ANIMA Industrial-Cyberpunk skin.
 
-No local chat. It does four things, well:
+No local chat. It does this, well:
 
 | | |
 |---|---|
-| 🎛 **Engine control** | Pick a model + vLLM config (context, GPU util, KV dtype, attention backend, spec-decode) → launches the `anima-vllm:thor-latest` container. Start / stop / tail logs. |
-| 📦 **Model manager** | List downloaded models with sizes, delete them, serve them in one click. |
-| 🔍 **Thor-ready discovery** | Searches HuggingFace for NVFP4 models and **ranks them for *this* box** — fits-in-128 GB check + estimated decode tok/s from active params. Flags `ROCKS` / `BALANCED` / `SMART·SLOW` / `TOO BIG` / `UNTESTED ARCH`. |
-| 🔌 **API + Swagger** | OpenAI `/v1` (also **Factory Droid**-compatible) and **Anthropic** `/v1/messages` (translated), documented at `/docs`. |
+| 🎛 **Engine control** | Pick a model + **profile** (latency / throughput) → launches the engine. **GPU util `auto`** fits free RAM (no OOM). Start / stop (graceful) / tail logs. Live **tok/s meter** + free-RAM from vLLM metrics. |
+| 📦 **Model manager** | List downloaded models with sizes, delete, serve in one click. Curated **presets** (hero / throughput-747 / your quantized coder / …). |
+| 🔍 **Thor-ready discovery** | Searches HF for NVFP4 models and **ranks them for *this* box** — fits-128 GB + est tok/s. Paste an exact repo → if it isn't NVFP4, a **`→ quantize`** path. Flags `ROCKS / BALANCED / SMART·SLOW / TOO BIG / UNTESTED ARCH`. |
+| 🧪 **Quantize → NVFP4** | Turn any standard bf16 HF model into a Thor-ready NVFP4 build on-device (NVIDIA ModelOpt), then one-click **publish to HF**. |
+| 🔌 **API + Swagger** | OpenAI `/v1` (also **Factory Droid**) + **Anthropic** `/v1/messages` (translated), at `/docs`. |
+| ♻️ **Self-healing** | Container **auto-restarts on reboot**; **auto-serves** a default model on boot; **Reboot Thor** button reclaims leaked GPU memory — full hands-free recovery. |
 
 No passwords (single-user edge box). HF token baked via env so downloads are fast and silent.
+
+### Profiles (measured on Qwen3.6-35B-A3B)
+- **latency** — 79 tok/s single-stream (snappiest for one user)
+- **throughput** — prefix-cache + batch → **747 tok/s aggregate** @ 48 concurrent
+See [`../docs/PERFORMANCE.md`](../docs/PERFORMANCE.md).
 
 ## How it ranks models for Thor
 Decode is memory-bandwidth-bound: `tok/s ≈ 273 GB/s ÷ (active_params × 1.2 bytes)`, calibrated to our measured
