@@ -78,3 +78,34 @@ def test_openai_to_anthropic_shape():
     assert back["content"][0] == {"type": "text", "text": "yo"}
     assert back["stop_reason"] == "end_turn"
     assert back["usage"]["output_tokens"] == 1
+
+
+def test_anthropic_tool_use_translation():
+    # Anthropic tool_use block → OpenAI tool_calls; tool_result → role:tool message
+    oai = _to_openai({"model": "m", "max_tokens": 64, "messages": [
+        {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "get", "input": {"q": 1}}]},
+        {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "42"}]},
+    ]})
+    asst = [m for m in oai["messages"] if m["role"] == "assistant"][0]
+    assert asst["tool_calls"][0]["function"]["name"] == "get"
+    tool = [m for m in oai["messages"] if m["role"] == "tool"][0]
+    assert tool["tool_call_id"] == "t1" and tool["content"] == "42"
+    # OpenAI tool_calls back → Anthropic tool_use block
+    back = _to_anthropic({"choices": [{"message": {"content": None, "tool_calls": [
+        {"id": "t2", "function": {"name": "f", "arguments": '{"a":1}'}}]}, "finish_reason": "tool_calls"}],
+        "usage": {}}, "m")
+    tu = [b for b in back["content"] if b["type"] == "tool_use"][0]
+    assert tu["name"] == "f" and tu["input"] == {"a": 1} and back["stop_reason"] == "tool_use"
+
+
+def test_ollama_model_id_strips_tag(monkeypatch):
+    from anima_thor_ui import ollama_api
+    monkeypatch.setattr(ollama_api, "_served_name", lambda: "")   # no engine config
+    assert ollama_api._model_id("qwen36:latest") == "qwen36"
+    monkeypatch.setattr(ollama_api, "_served_name", lambda: "hero")  # route to what's served
+    assert ollama_api._model_id("anything:7b") == "hero"
+
+
+def test_model_size_gb_unknown_is_zero():
+    # nonexistent repo/path → 0.0 (guard falls back), never raises
+    assert vllm_manager.model_size_gb("nope/does-not-exist-123") == 0.0
