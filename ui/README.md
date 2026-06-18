@@ -36,8 +36,8 @@ TOO BIG       MiniMax-M3 (427B)                          235GB   —          (w
 ```bash
 git clone https://github.com/RobotFlow-Labs/anima-vllm-thor && cd anima-vllm-thor/ui
 # secrets come from ~/thor-serve/.env (HF_TOKEN, HF_HOME); edit if needed
-./run_docker.sh             # builds + runs container with --restart unless-stopped
-                            # http://<thor>:7000   ·   Swagger at /docs
+docker compose up -d --build   # or: ./run_docker.sh
+                               # http://<thor>:7000   ·   Swagger at /docs
 ```
 The container ships the Docker CLI and mounts the host docker socket + HF cache (at identical
 in/out paths) so it can drive the **sibling** vLLM + quantize containers. `--restart unless-stopped`

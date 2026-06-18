@@ -1,0 +1,22 @@
+# One-command deploy of the anima-thor-ui control plane on Thor.
+#   cd ui && docker compose up -d --build
+# Drives the SIBLING vLLM/quantize containers via the host docker socket; app + HF
+# cache are bind-mounted at IDENTICAL host paths so the nested `docker run -v` resolves.
+services:
+  anima-thor-ui:
+    build: .
+    image: anima-thor-ui:latest
+    container_name: anima-thor-ui
+    restart: unless-stopped          # + an enabled docker.service → self-heals after reboot
+    network_mode: host
+    env_file:
+      - ${HOME}/thor-serve/.env       # HF_TOKEN, HF_HOME, AUTOSERVE_*, …
+    environment:
+      ANIMA_UI_PORT: "7000"
+      ANIMA_VLLM_CACHE: ${HOME}/thor-vllm-cache
+      PYTHONUNBUFFERED: "1"
+    working_dir: ${PWD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PWD}:${PWD}                                       # app code, same path in/out
+      - ${HOME}/thor-serve/models/huggingface:${HOME}/thor-serve/models/huggingface
