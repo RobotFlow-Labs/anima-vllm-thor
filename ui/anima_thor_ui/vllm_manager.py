@@ -85,8 +85,10 @@ def is_running() -> bool:
 
 
 def stop() -> dict:
-    """GRACEFUL stop — `docker stop` sends SIGTERM so vLLM releases its CUDA context.
-    Force-kill (`rm -f` / SIGKILL) leaks GPU memory on Jetson, starving the next serve."""
+    """Graceful `docker stop` (SIGTERM) — cleaner than force-kill, BUT measured fact:
+    on Thor, stopping a served model leaks its GPU memory *regardless* of stop method
+    (the Jetson driver doesn't reclaim the dead CUDA context). Only a REBOOT reclaims it.
+    Practical rule: serve one model per boot; to swap models, reboot (UI auto-serves after)."""
     global _started_at, _current
     if is_running():
         _docker("stop", "-t", "40", settings.VLLM_CONTAINER, timeout=60)
