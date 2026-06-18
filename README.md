@@ -66,16 +66,21 @@ docker run --rm -it --runtime nvidia --network host --shm-size=16g \
 > Use `--runtime nvidia` (not `--gpus all`) on Jetson. First start JIT-compiles flashinfer (~30–60 s) — cached after.
 
 ## 📊 Benchmarks
-<sub>Jetson AGX Thor · `sm_110a` · MAXN · vLLM 0.23.1 · TRITON_ATTN · fp8 KV · measured with `scripts/bench_openai.py` (2026-06-17)</sub>
+<p align="center"><img src="assets/bench_chart.png" alt="747 tok/s aggregate on Jetson Thor" width="100%"></p>
 
-| Model | quant | ctx | single-stream | aggregate (conc 8) | TTFT | note |
-|---|---|---|:---:|:---:|:---:|---|
-| Nemotron-3-Nano-30B-A3B | NVFP4 | 8K | **67.7 tok/s** | **240 tok/s** | 0.09 s | matches 0.19 → no regression |
-| **Qwen3.6-35B-A3B** | NVFP4 | 32K | **79.4 tok/s** | **294 tok/s** | 0.07 s | **0.19 cannot load this** — the whole point |
+<sub>Jetson AGX Thor · `sm_110a` · MAXN ~60 W · vLLM 0.23.1 · fp8 KV · `scripts/bench_openai.py` (2026-06-18)</sub>
 
-Decode is **memory-bandwidth-bound** (273 GB/s ÷ ~3 B active params/token ≈ the single-stream ceiling).
-Continuous batching multiplies it — **294 tok/s aggregate at concurrency 8.** Big context is ~free above
-100K (KV is *reserved*, not read) until the conversation actually fills it.
+**Qwen3.6-35B-A3B-NVFP4 on one 60 W box:** **79 tok/s** to a single user, scaling to **747 tok/s aggregate**
+at 48 concurrent streams (prefix-caching + batch). Full curve, both profiles, and the honest framing
+(bandwidth ceiling, what helped / didn't) in **[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)**.
+
+| Model | quant | single-stream | aggregate | TTFT | note |
+|---|---|:---:|:---:|:---:|---|
+| **Qwen3.6-35B-A3B** | NVFP4 | **79 tok/s** | **747 tok/s** (peak @48) | 0.07 s | **0.19 cannot load this** — the whole point |
+| Nemotron-3-Nano-30B-A3B | NVFP4 | 67.7 tok/s | 240 (@8) | 0.09 s | matches 0.19 → no regression |
+
+Decode is **memory-bandwidth-bound** (273 GB/s ÷ ~3 B active params ≈ the single-stream ceiling); continuous
+batching multiplies *total* throughput to **747 tok/s**. Big context is ~free above 100K (KV is reserved, not read).
 
 <details>
 <summary><b>Speculative decoding — the honest result (click)</b></summary>
