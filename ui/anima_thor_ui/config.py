@@ -30,6 +30,9 @@ class Settings:
 
     # --- secrets / auth ---
     HF_TOKEN: str | None = os.environ.get("HF_TOKEN") or None
+    # optional API key: if set, inference + control endpoints require Bearer/x-api-key.
+    # Empty = open (single-user edge default). Set for exposed/fleet deployments.
+    API_KEY: str = os.environ.get("ANIMA_API_KEY", "")
 
     # --- Thor hardware envelope (for the compatibility filter) ---
     UNIFIED_MEM_GB: float = float(os.environ.get("ANIMA_MEM_GB", "128"))

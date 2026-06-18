@@ -109,3 +109,14 @@ def test_ollama_model_id_strips_tag(monkeypatch):
 def test_model_size_gb_unknown_is_zero():
     # nonexistent repo/path → 0.0 (guard falls back), never raises
     assert vllm_manager.model_size_gb("nope/does-not-exist-123") == 0.0
+
+
+def test_optional_api_key_gate(monkeypatch):
+    from fastapi.testclient import TestClient
+    from anima_thor_ui import main
+    from anima_thor_ui.config import settings
+    monkeypatch.setattr(settings, "API_KEY", "secret")          # enable auth
+    with TestClient(main.app) as c:
+        assert c.get("/api/quantize").status_code == 401         # protected, no key
+        assert c.get("/api/quantize", headers={"x-api-key": "secret"}).status_code == 200
+        assert c.get("/api/version").status_code == 200          # Ollama probe stays open

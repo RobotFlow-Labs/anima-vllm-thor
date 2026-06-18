@@ -47,9 +47,21 @@ _log = logging.getLogger("anima")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s anima %(message)s")
 
 
+_PROTECTED = ("/v1", "/api")          # inference + control; UI/static/docs/healthz stay open
+_OPEN = ("/api/version", "/api/tags")  # Ollama probes some clients hit before auth
+
+
 @app.middleware("http")
-async def _timing(request, call_next):
+async def _gate(request, call_next):
     t0 = _time.time()
+    # optional API-key auth (only when ANIMA_API_KEY is set)
+    if settings.API_KEY:
+        p = request.url.path
+        if p.startswith(_PROTECTED) and p not in _OPEN:
+            auth = request.headers.get("authorization", "")
+            key = auth[7:] if auth.lower().startswith("bearer ") else request.headers.get("x-api-key", "")
+            if key != settings.API_KEY:
+                return JSONResponse(status_code=401, content={"error": "invalid or missing API key"})
     resp = await call_next(request)
     dt = (_time.time() - t0) * 1000
     if not request.url.path.startswith(("/style", "/app.js", "/favicon")):
