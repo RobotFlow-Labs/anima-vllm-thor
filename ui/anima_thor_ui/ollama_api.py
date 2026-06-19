@@ -128,10 +128,10 @@ async def _chat_stream(oai: dict, model: str):
                 if delta.get("content"):
                     yield json.dumps({"model": model, "created_at": _now(),
                                       "message": {"role": "assistant", "content": delta["content"]},
-                                      "done": False}) + "\n"
+                                      "done": False}, separators=(",", ":")) + "\n"
     yield json.dumps({"model": model, "created_at": _now(),
                       "message": {"role": "assistant", "content": ""}, "done": True,
-                      "done_reason": "stop"}) + "\n"
+                      "done_reason": "stop"}, separators=(",", ":")) + "\n"
 
 
 @router.post("/api/generate", summary="Ollama generate → vLLM")
@@ -152,7 +152,8 @@ async def generate(request: Request):
             async for chunk in _chat_stream(oai, model):
                 o = json.loads(chunk)
                 yield json.dumps({"model": model, "created_at": _now(),
-                                  "response": o["message"]["content"], "done": o["done"]}) + "\n"
+                                  "response": o["message"]["content"], "done": o["done"]},
+                                 separators=(",", ":")) + "\n"
         return StreamingResponse(gen(), media_type="application/x-ndjson")
     async with httpx.AsyncClient(timeout=300) as c:
         r = await c.post(f"{settings.vllm_base_url}/v1/chat/completions", json=oai)
