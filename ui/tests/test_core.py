@@ -111,6 +111,25 @@ def test_model_size_gb_unknown_is_zero():
     assert vllm_manager.model_size_gb("nope/does-not-exist-123") == 0.0
 
 
+def test_autoserve_config_honors_persisted_util():
+    # faithful self-heal: restore the exact util we last served at, not re-auto
+    cfg = vllm_manager._config_from_state(
+        "nvidia/Qwen3-Next-80B-A3B-Instruct-NVFP4",
+        {"profile": "latency", "max_model_len": 32768,
+         "served_name": "qwen3next-80b", "gpu_memory_utilization": 0.78})
+    assert cfg.gpu_memory_utilization == 0.78          # NOT "auto" — avoids OOM on clean boot
+    assert cfg.served_name == "qwen3next-80b"
+    assert cfg.max_model_len == 32768
+
+
+def test_autoserve_config_falls_back_to_auto():
+    # older state (no util persisted) → "auto" so old boxes still self-heal
+    cfg = vllm_manager._config_from_state("some/model", {"profile": "throughput"})
+    assert cfg.gpu_memory_utilization == "auto"
+    assert cfg.profile == "throughput"
+    assert cfg.max_model_len == 32768                  # default when absent
+
+
 def test_nvfp4_and_arch_detection():
     assert hf_models._is_nvfp4(["nvfp4", "modelopt"], "x/y")
     assert hf_models._is_nvfp4([], "nvidia/Foo-NVFP4")          # name hint

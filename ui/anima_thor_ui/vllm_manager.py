@@ -223,6 +223,19 @@ def reboot_host() -> dict:
     return {"rebooting": True, "detail": (r.stderr or r.stdout or "").strip()[:200]}
 
 
+def _config_from_state(model: str, last: dict) -> ServeConfig:
+    """Build a ServeConfig from a persisted last-serve state dict.
+
+    Honors the exact util we last served at (faithful self-heal); on a clean boot
+    re-running auto would pick a HIGHER util than a large model was tuned for and
+    risk OOM (e.g. an 80B model that fits at 0.78 but not 0.85). Falls back to
+    "auto" only when no util was persisted."""
+    return ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
+                       max_model_len=last.get("max_model_len", 32768),
+                       served_name=last.get("served_name", ""),
+                       gpu_memory_utilization=last.get("gpu_memory_utilization") or "auto")
+
+
 def autoserve_if_idle() -> None:
     """Called on UI startup — serve the LAST-served model (or the configured default)
     if nothing is running yet, so the box self-heals to the same state after a boot."""
@@ -240,13 +253,7 @@ def autoserve_if_idle() -> None:
             return
         time.sleep(8)  # let the box settle after a boot before profiling memory
         def _cfg() -> ServeConfig:
-            # Honor the exact util we last served at (faithful self-heal); on a clean
-            # boot re-auto would pick a HIGHER util than a large model was tuned for and
-            # risk OOM. Fall back to "auto" only if no util was persisted.
-            return ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
-                               max_model_len=last.get("max_model_len", 32768),
-                               served_name=last.get("served_name", ""),
-                               gpu_memory_utilization=last.get("gpu_memory_utilization") or "auto")
+            return _config_from_state(model, last)
         # retry — a fresh boot's leak-reclaim climb can still race the first profiling attempt
         for _attempt in range(3):
             if is_running() and _engine_ready():
