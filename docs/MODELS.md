@@ -35,6 +35,20 @@ Calibration needs the model **in bf16** resident → fits up to **~27 B / ~54 GB
 | Qwen2.5-Coder-14B (quantize yourself) | — | coding, fits with margin |
 | Qwen3-Next-80B-A3B | 34 / 150 | bigger brain, slower |
 
+## Measured NVFP4 weight sizes — the real fit boundary
+Actual on-disk weights, measured on Thor. The serving ceiling is **~62 GB** (weights + KV), so the
+boundary sits between the 80B (fits) and the 120B (doesn't):
+
+| Model | NVFP4 weights | Serves on vLLM 0.23? |
+|---|---|---|
+| Gemma-4-26B-A4B | 18 GB | ❌ — fits in memory, but `gemma4` arch unsupported |
+| Nemotron-Nano-30B-A3B | 19 GB | ✅ |
+| **Qwen3.6-35B-A3B** (hero) | 22 GB | ✅ |
+| Qwen3-Next-80B-A3B | **48 GB** | ✅ — largest that fits |
+| Nemotron-Super-120B-A12B | **75 GB** | ❌ — exceeds the ~62 GB ceiling |
+
+So "won't fit" isn't just the frontier giants — it kicks in around **~60 GB of NVFP4 weights** on this box.
+
 ## Too big for Thor (frontier, multi-GPU class)
 MiniMax-M3 (427 B), DeepSeek-V4 (671 B), Kimi-K2.x (~1 T), GLM-5.x, Qwen3-235B-A22B — won't fit; the UI
 flags them `TOO BIG`.
