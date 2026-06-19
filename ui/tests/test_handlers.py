@@ -44,3 +44,38 @@ def test_endpoints_503_when_engine_down(monkeypatch):
     with TestClient(main.app) as c:
         assert c.post("/api/chat", json={"model": "m", "messages": [], "stream": False}).status_code == 503
         assert c.post("/v1/messages", json={"model": "m", "max_tokens": 8, "messages": []}).status_code == 503
+
+
+# vLLM emits OpenAI-style SSE; both the Ollama and Anthropic streamers consume it.
+_SSE = ('data: {"choices":[{"delta":{"content":"1 2 3"}}]}\n\n'
+        'data: [DONE]\n\n')
+
+
+@respx.mock
+def test_ollama_stream_compact_ndjson(monkeypatch):
+    """Streaming path is distinct code; guard the compact `"done":true` wire format
+    (regression: it once serialized as `"done": true` with a space)."""
+    _up(monkeypatch)
+    respx.post(f"{VLLM}/v1/chat/completions").mock(return_value=httpx.Response(200, text=_SSE))
+    with TestClient(main.app) as c:
+        r = c.post("/api/chat", json={"model": "m", "stream": True,
+                                      "messages": [{"role": "user", "content": "hi"}]})
+    body = r.text
+    assert r.status_code == 200
+    assert '"content":"1 2 3"' in body          # upstream delta forwarded
+    assert '"done":true' in body                # compact final chunk
+    assert '"done": true' not in body           # never the spaced form
+
+
+@respx.mock
+def test_anthropic_stream_sse(monkeypatch):
+    _up(monkeypatch)
+    respx.post(f"{VLLM}/v1/chat/completions").mock(return_value=httpx.Response(200, text=_SSE))
+    with TestClient(main.app) as c:
+        r = c.post("/v1/messages", json={"model": "m", "max_tokens": 16, "stream": True,
+                                         "messages": [{"role": "user", "content": "hi"}]})
+    body = r.text
+    assert r.status_code == 200
+    assert "event: message_start" in body
+    assert "content_block_delta" in body and "1 2 3" in body   # delta text forwarded
+    assert "event: message_stop" in body
