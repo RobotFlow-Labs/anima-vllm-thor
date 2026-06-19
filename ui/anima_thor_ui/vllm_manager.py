@@ -202,7 +202,8 @@ def serve(cfg: ServeConfig) -> dict:
     _current = asdict(cfg)
     try:  # remember what we served so the box self-heals to the SAME state on boot
         _STATE.write_text(json.dumps({"model": cfg.model, "profile": cfg.profile,
-                                      "max_model_len": cfg.max_model_len, "served_name": cfg.served_name}))
+                                      "max_model_len": cfg.max_model_len, "served_name": cfg.served_name,
+                                      "gpu_memory_utilization": util}))
     except OSError:
         pass
     return {"started": True, "container": settings.VLLM_CONTAINER, "config": _current, "auto_util": util}
@@ -239,9 +240,13 @@ def autoserve_if_idle() -> None:
             return
         time.sleep(8)  # let the box settle after a boot before profiling memory
         def _cfg() -> ServeConfig:
+            # Honor the exact util we last served at (faithful self-heal); on a clean
+            # boot re-auto would pick a HIGHER util than a large model was tuned for and
+            # risk OOM. Fall back to "auto" only if no util was persisted.
             return ServeConfig(model=model, profile=last.get("profile") or settings.AUTOSERVE_PROFILE,
                                max_model_len=last.get("max_model_len", 32768),
-                               served_name=last.get("served_name", ""), gpu_memory_utilization="auto")
+                               served_name=last.get("served_name", ""),
+                               gpu_memory_utilization=last.get("gpu_memory_utilization") or "auto")
         # retry — a fresh boot's leak-reclaim climb can still race the first profiling attempt
         for _attempt in range(3):
             if is_running() and _engine_ready():
