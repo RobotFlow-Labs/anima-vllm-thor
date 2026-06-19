@@ -84,16 +84,19 @@ def _needle(ui: str, served: str, n_tokens: int) -> dict:
                     "token comment above? Reply with ONLY the key, nothing else.")
     approx_tok = len(prompt) // 4
     t0 = time.perf_counter()
+    # max_tokens generous: Qwen3.6 is a reasoning model — it emits a <think> chain
+    # before the answer, so a tiny budget cuts it off mid-thought. We check whether
+    # the secret appears ANYWHERE in the full completion.
     r = httpx.post(f"{ui}/v1/chat/completions",
                    json={"model": served, "messages": [{"role": "user", "content": prompt}],
-                         "max_tokens": 32, "temperature": 0.0}, timeout=300)
+                         "max_tokens": 512, "temperature": 0.0}, timeout=300)
     dt = time.perf_counter() - t0
     if r.status_code >= 300:
         return {"ok": False, "err": r.text[:200], "approx_prompt_tokens": approx_tok}
     d = r.json()
     ans = (d.get("choices") or [{}])[0].get("message", {}).get("content", "")
     usage = d.get("usage", {})
-    return {"ok": secret in ans, "answer": ans.strip()[:80],
+    return {"ok": secret in ans, "answer": ans.strip()[-120:],
             "approx_prompt_tokens": approx_tok,
             "prompt_tokens_actual": usage.get("prompt_tokens"),
             "completion_tokens": usage.get("completion_tokens"),

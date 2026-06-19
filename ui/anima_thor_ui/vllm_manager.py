@@ -258,11 +258,15 @@ def autoserve_if_idle() -> None:
         for _attempt in range(3):
             if is_running() and _engine_ready():
                 return
-            try:
-                serve(_cfg())
-            except Exception:  # noqa: BLE001
-                pass
-            for _ in range(20):   # wait up to ~5 min for this attempt to come ready
+            # don't relaunch over an engine that's still coming up (a large-context cold
+            # start does weight-load + KV-profile + CUDA-graph capture; measured ~6.5 min
+            # for the 35B hero at 128K). Only (re)serve when nothing is running.
+            if not is_running():
+                try:
+                    serve(_cfg())
+                except Exception:  # noqa: BLE001
+                    pass
+            for _ in range(48):   # wait up to ~12 min — covers a 128K cold-start compile
                 if _engine_ready():
                     return
                 time.sleep(15)

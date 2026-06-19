@@ -10,6 +10,20 @@ model `ROCKS / BALANCED / SMART·SLOW / TOO BIG / UNTESTED ARCH / QUANTIZE→NVF
 2. **Decode is memory-bandwidth-bound.** `tok/s ≈ 273 GB/s ÷ (active_params × ~1.2)`. So **MoE with low
    active params wins**: a 35B-A3B does ~79 tok/s; a dense 32B does ~7.
 
+## Context length — 128K is the coding default, not 32K
+The Qwen hero uses aggressive GQA (**2 KV heads**, head_dim 256, 40 layers) → KV is only ~40 KB/token.
+**Measured on Thor** (Qwen3.6-35B-A3B-NVFP4, fp8 KV, util 0.62): vLLM allocates a **64.8 GiB / 6.44 M-token
+KV pool** — enough for **49 concurrent 128K-context sequences**. So 32768 was leaving ~90% of capability
+on the table. The UI now defaults coding/latency presets to **131072 (128K)**; native max is 262144 (256K),
+which still allows ~24× concurrency.
+
+- **Verified, not just loaded:** a needle-in-haystack recall at a **59,042-token** prompt (key buried at
+  60% depth, ~2× the old 32K ceiling) returns the exact key. `bench/context_test.py` reproduces this.
+- **Cost of long context ≈ free here** thanks to GQA — raise `max_model_len`, not util. Keep **throughput**
+  profile lower (32–64K): 48-way continuous batching multiplies KV demand.
+- **Cold-start caveat:** first serve at 128K does weight-load + KV-profile + CUDA-graph capture (~6.5 min on
+  the 35B); the CUDA-graph cache makes later boots fast. Autoserve waits up to ~12 min for this.
+
 ## Architectures
 | Arch | Serve on vLLM 0.23? | Quantize (ModelOpt)? | Notes |
 |---|---|---|---|
