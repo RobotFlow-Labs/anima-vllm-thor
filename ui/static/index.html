@@ -45,7 +45,7 @@
       <div class="grid2">
         <div><label>Model (local)</label><select id="cfg-model"></select></div>
         <div><label>Served name (OpenAI id)</label><input id="cfg-name" placeholder="auto from model"></div>
-        <div><label>Max context length</label><input id="cfg-ctx" type="number" value="32768"></div>
+        <div><label>Max context length</label><input id="cfg-ctx" type="number" value="131072"></div>
         <div><label>Profile</label><select id="cfg-profile"><option value="latency">latency — fastest single user (~79 tok/s)</option><option value="throughput">throughput — prefix-cache + batch (747 agg)</option></select></div>
         <div><label>GPU memory util (auto = fit free RAM)</label><input id="cfg-util" value="auto" placeholder="auto"></div>
         <div><label>KV cache dtype</label><select id="cfg-kv"><option>fp8</option><option>auto</option></select></div>

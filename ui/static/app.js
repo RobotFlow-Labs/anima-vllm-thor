@@ -263,14 +263,19 @@ async function resumeQuant() {
   if (j && j.status === "running") { $("#q-progress").style.display = "block"; renderQuant(j); startQuantPoll(); }
 }
 
-// ---- curated presets (proven on Thor) — util auto-fits free RAM ----
+// ---- curated presets — util auto-fits free RAM ----
+// Context sized by KV math: Qwen3.6/Qwen2.5 use GQA (2 KV heads) → ~40 KB/token,
+// so the KV pool holds ~328K tokens at util 0.62. Latency/coding presets therefore
+// run 128K context (native max is 262144); throughput stays at 32K because 48-way
+// concurrency multiplies KV demand. Hybrid archs (nemotron_h, qwen3_next) kept
+// conservative pending long-context verification.
 const PRESETS = [
-  { label: "Qwen3.6-35B-A3B · HERO · 79 tok/s", model: "nvidia/Qwen3.6-35B-A3B-NVFP4",
-    name: "qwen36", ctx: 32768, profile: "latency", tag: "rocks" },
+  { label: "Qwen3.6-35B-A3B · HERO · 128K ctx · 79 tok/s", model: "nvidia/Qwen3.6-35B-A3B-NVFP4",
+    name: "qwen36", ctx: 131072, profile: "latency", tag: "rocks" },
   { label: "Qwen3.6-35B-A3B · THROUGHPUT · 747 agg", model: "nvidia/Qwen3.6-35B-A3B-NVFP4",
     name: "qwen36-fast", ctx: 32768, profile: "throughput", tag: "rocks" },
-  { label: "Qwen2.5-Coder-14B · ours · NVFP4", model: "/root/.cache/huggingface/anima-nvfp4/Qwen2.5-Coder-14B-Instruct-NVFP4-anima",
-    name: "coder14b", ctx: 32768, profile: "latency", tag: "balanced" },
+  { label: "Qwen2.5-Coder-14B · ours · 128K ctx · NVFP4", model: "/root/.cache/huggingface/anima-nvfp4/Qwen2.5-Coder-14B-Instruct-NVFP4-anima",
+    name: "coder14b", ctx: 131072, profile: "latency", tag: "balanced" },
   { label: "Nemotron-Nano-30B-A3B · 68 tok/s", model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4",
     name: "nemotron-nano", ctx: 32768, profile: "latency", tag: "balanced" },
   { label: "Qwen3-Next-80B-A3B · big brain · 34 tok/s", model: "nvidia/Qwen3-Next-80B-A3B-Instruct-NVFP4",
