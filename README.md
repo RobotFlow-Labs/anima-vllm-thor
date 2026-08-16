@@ -107,7 +107,7 @@ workload before enabling it.
 5. **`LD_PRELOAD` the real driver libcuda** — `_C_stable_libtorch.abi3.so` has an unresolved `cuTensorMapEncodeTiled`; preload `/usr/lib/aarch64-linux-gnu/nvidia/libcuda.so.1` (final `ENV`, runtime-only).
 6. **Reset `WORKDIR /` + remove `/build`** — else the cloned source tree shadows the installed wheel (`No module named 'vllm._C'`).
 7. **Upgrade `compressed-tensors` to 0.17.x** — the base's is stale (`No module named compressed_tensors.compressors.pack_quantized`).
-8. **Guard the optional quant backends** (`humming`/`inc`/`fp_quant`/`torchao`/`quark`/`deepseek_v4`/`mxfp4`) — vLLM 0.23 eagerly imports *all* of them; these aren't on arm64. Wrapped in try/except by [`scripts/patch_quant.py`](./scripts/patch_quant.py). Also pin `flashinfer-python==0.6.8` (0.6.12 isn't on the arm64 index yet).
+8. **Guard the optional quant backends** (`humming`/`inc`/`fp_quant`/`torchao`/`quark`/`deepseek_v4`/`mxfp4`) — vLLM 0.23 eagerly imports *all* of them; these aren't on arm64. [`scripts/patch_quant.py`](./scripts/patch_quant.py) wraps their imports and makes auto-detection skip unavailable configs. Without the second guard, model loading fails with `AttributeError: 'NoneType' object has no attribute 'override_quantization_method'`. Also pin `flashinfer-python==0.6.8` (0.6.12 isn't on the arm64 index yet).
 9. **Install `numba`** — required by the ngram speculative-decoding proposer.
 
 ## 🔨 Build it yourself
