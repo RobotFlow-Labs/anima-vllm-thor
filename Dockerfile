@@ -40,7 +40,8 @@ RUN pip install --no-cache-dir "compressed-tensors==0.17.1"
 RUN pip install --no-cache-dir numba
 
 # (8) vLLM 0.23 eagerly imports ALL quant backends; guard the ones not packaged for arm64
-#     (humming/inc/fp_quant/torchao/quark/deepseek_v4/mxfp4) so NVFP4/compressed-tensors still load
+#     (humming/inc/fp_quant/torchao/quark/deepseek_v4/mxfp4), then skip those unavailable configs
+#     during model quantization auto-detection so NVFP4/compressed-tensors still load
 COPY scripts/patch_quant.py /tmp/patch_quant.py
 RUN python /tmp/patch_quant.py
 
